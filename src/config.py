@@ -102,7 +102,7 @@ class ConfigNode:
 
     @property
     def path(self):
-        " Get path to configuration node """
+        """ Get path to configuration node """
         path = []
         cfgnode = self
         while cfgnode is not None:
