@@ -1,0 +1,8 @@
+{% extends "base.j2" %}
+
+{% block extra_layers %}
+# Forgejo layers
+RUN apt-get update && apt-get install -y nodejs npm
+RUN npm install -g forgejo-cli
+{% endblock %}
+

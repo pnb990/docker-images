@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause.txt
+
+pytest:
+  stage: lint
+  image: python:3.13
+  rules:
+    # By default, when no rule is specified, all scripts are triggered by all event types.
+    #
+    # Some events can create duplicated triggering such as: "push" and "merge_request_event" events
+    # if we push in a branch with an open MR.
+    #
+    # GitLab manages this issue and avoids jobs duplication; but this can be problematic
+    # because:
+    # - it choses one event and it can be the "push" and not the "merge_request_event" event.
+    #   Therefore, all the jobs to run in "merge request" could run on different pipelines.
+    # - The MR only checks the last runned pipeline.
+    #
+    # Therefore, if one pipeline fails and then another succeeds, the MR is still considered
+    # successful.
+    #
+    # To avoid this and manage only one pipeline, you must add the following lines in your scripts
+    # (if you want to run you script eachtime).
+    #
+    # `$CI_COMMIT_BRANCH` is used to differentiate the push on a branch from the push of a tag.
+    - if: $CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - when: always
+  script:
+    - pip install pipenv
+    - pipenv install -d
+    - pipenv run python ./tools/gitlab_ci.py
