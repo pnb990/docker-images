@@ -77,7 +77,7 @@ def main(argv=None):
             nargs='?',
             type=output_dir,
             help='output directory',
-            default='out',
+            default='images',
             )
 
     args = parser.parse_args(argv)
@@ -92,27 +92,21 @@ def main(argv=None):
 
     outdir = Path(args.output_dir)
 
-    for name, image in config.images.items():
+    for i_name, image in config.images.items():
         try:
-            template = env.get_template(image.template)
+            for v_name, variant in config.variants.items():
+                template = env.get_template(image.template)
 
-            # Generate Dockerfile for devcontainer
-            dev_rendered = template.render(
-                parent=config.common.base_template,
-                base_image=config.common.base_image,
-            )
-            (outdir / f"{name}.devcontainer.Dockerfile").write_text(dev_rendered)
+                dev_rendered = template.render(
+                    parent=str(variant.parent),
+                    base_image=str(variant.image)
+                )
 
-            # Generate Dockerfile for CI
-            ci_rendered = template.render(
-                parent=config.common.ci_template,
-                base_image=config.common.base_image,
-            )
-            (outdir / f"{name}.ci.Dockerfile").write_text(ci_rendered)
-
-            log.info("Generating Dockerfiles for image:%s", name)
-        except TemplateNotFound as e:
-            log.error("Template not found for image:%s error:%s", name, e)
+                (outdir / f"{i_name}.{v_name}.Dockerfile").write_text(dev_rendered)
+                log.info("Generated image:%s variant %s", i_name, v_name)
+        except TemplateNotFound as error:
+            log.error("Template not found for image:%s error:%s",
+                      i_name, error)
 
 if __name__ == "__main__":
     main()

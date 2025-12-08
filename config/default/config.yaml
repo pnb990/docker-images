@@ -6,13 +6,14 @@
 logs:
   level: "DEBUG"
 
-common:
-  base_image: "debian:12"
-  base_template: "base.j2"
-  ci_template: "forgejo.j2"
+variants:
+  base:
+    parent: base.j2
+    image: "debian:trixie-slim"
+  ci:
+    parent: base.j2
+    image: "nodejs:25-trixie-slim"
 
 images:
-  python:
-    template: "fw-arm-none-eabi.j2"
   fw-arm-none-eabi:
     template: "fw-arm-none-eabi.j2"

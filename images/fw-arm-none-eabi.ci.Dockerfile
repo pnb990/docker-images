@@ -1,7 +1,8 @@
-{% extends parent %}
+# Base of all images
+FROM nodejs:25-trixie-slim
 
-{% block extra_layers %}
-{{ super() }}
+
+
 
 # -------------------------------------------------------------------
 # Configuration and Environment Variables
@@ -36,4 +37,4 @@ RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && rm -rf /tmp/arm-toolchain
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}
 
-{% endblock %}
+
