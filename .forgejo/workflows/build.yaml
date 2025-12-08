@@ -24,9 +24,11 @@ jobs:
       - name: Set up matrix
         id: set-matrix
         run: |
-          files=$(ls images/*.Dockerfile | jq -R . | jq -s .)
-          echo "matrix={\"file\": $files}" >> "$GITHUB_OUTPUT"
-
+          arr="[]"
+          for f in images/*.Dockerfile; do
+            arr=$(echo "$arr" | sed "s/]$/, \"${f}\"]/")
+          done
+          echo "matrix={\"file\": $arr}" >> "$GITHUB_OUTPUT"
   build:
     needs:
       - prepare
@@ -53,7 +55,7 @@ jobs:
           EOF
 
           apt-get update
-          apt-get install -y docker-ce-cli
+          apt-get install -y docker-ce-cli jq
 
       - name: Checkout the repo
         uses: actions/checkout@v4
