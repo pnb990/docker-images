@@ -42,6 +42,10 @@ jobs:
         run: |
           export
 
+      - name: Show env
+        run: |
+          cat $GITHUB_OUTPUT
+
   build:
     needs:
       - prepare
