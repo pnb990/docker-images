@@ -1,0 +1,20 @@
+---
+name: build-dockerfile
+
+on:
+  push:
+
+jobs:
+  prepare:
+    runs-on: STM32
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate matrix of Dockerfiles
+        run: python3 ./src/main.py
+
+      - name: Show images list
+        run: cat images/images_list.json
