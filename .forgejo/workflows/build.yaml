@@ -16,7 +16,7 @@ jobs:
   prepare:
     runs-on: STM32
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.gen.outputs.matrix }}
 
     steps:
       - uses: actions/checkout@v4
