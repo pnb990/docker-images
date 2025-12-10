@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: pipenv install --deploy
 
+      - name: Clean images directory
+        run: rm -rf images/
+
       - name: Generate matrix of Dockerfiles
         run: pipenv run python3 ./src/main.py
 
