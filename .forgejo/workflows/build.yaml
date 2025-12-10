@@ -21,9 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check Python version
-        run: python3 --version
-
       - name: Generate matrix of Dockerfiles
         id: gen
         run: |
@@ -92,7 +89,7 @@ jobs:
           fname=$(basename "${{ matrix.file }}")
           image="${fname%.Dockerfile}"   # remove .Dockerfile
           echo "name=$image" >> $GITHUB_OUTPUT
-          echo "Image "${{ matrix.file }}" => name: $image"
+          echo "Image ${{ matrix.file }} => name: $image"
 
       - name: Login to Container Registry
         uses: docker/login-action@v3
