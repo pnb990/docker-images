@@ -9,6 +9,7 @@
 Main command line entry point
 """
 
+import json
 import argparse
 import logging
 import os
@@ -87,10 +88,10 @@ def main(argv=None):
     configure_log(level=config.logs.level)
     log.info("configuration loaded from %s", args.config)
 
-
     env = Environment(loader=FileSystemLoader("ressources/templates"))
 
     outdir = Path(args.output_dir)
+    images_list = []
 
     for i_name, image in config.images.items():
         try:
@@ -104,9 +105,13 @@ def main(argv=None):
 
                 (outdir / f"{i_name}.{v_name}.Dockerfile").write_text(dev_rendered)
                 log.info("Generated image:%s variant %s", i_name, v_name)
+                images_list.append(f"{i_name}.{v_name}.Dockerfile")
         except TemplateNotFound as error:
             log.error("Template not found for image:%s error:%s",
                       i_name, error)
+
+    with open(outdir / "images_list.json", "w", encoding="utf-8") as img_list_file:
+        json.dump(images_list, img_list_file, indent=4)
 
 if __name__ == "__main__":
     main()

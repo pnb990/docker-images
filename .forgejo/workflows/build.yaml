@@ -3,59 +3,17 @@ name: build-docker-image
 
 on:
   push:
-#     tags:
-#       - release-*
-#     paths:
-#       - images/test.Dockerfile
-
-env:
-  IMAGE_NAME: test
-  IMAGE_PATH: images/${{ env.IMAGE_NAME }}.Dockerfile
+    paths:
+      - images/*.Dockerfile
 
 jobs:
-  prepare:
-    runs-on: STM32
-    outputs:
-      matrix: ${{ steps.gen.outputs.matrix }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Generate matrix of Dockerfiles
-        id: gen
-        run: |
-          python3 << 'EOF'
-          import glob, json, os
-        
-          files = sorted(glob.glob("images/*.Dockerfile"))
-          matrix = {"file": files}
-        
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"matrix={json.dumps(matrix)}\n")
-          EOF
-
-      - name: Use matrix
-        run: |
-          echo "Matrix = ${{ steps.gen.outputs.matrix }}"
-
-      - name: Show env
-        run: |
-          export
-
-      - name: Show env
-        run: |
-          cat $GITHUB_OUTPUT
 
   build:
-    needs:
-      - prepare
-
     runs-on: STM32
 
     strategy:
       matrix:
         file:
-          - images/test.Dockerfile
           - images/fw-arm-none-eabi.base.Dockerfile
           - images/fw-arm-none-eabi.ci.Dockerfile
 
@@ -114,9 +72,6 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         
-      - name: Show Dockerfile being used
-        run: cat ${{ matrix.file }}
-
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
