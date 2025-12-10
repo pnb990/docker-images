@@ -48,6 +48,10 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
+      - name: Show matrix values
+        run: |
+          echo "Matrix file = ${{ matrix.file }}"
+
       - name: Install docker-cli
         run: |
           install -m 0755 -d /etc/apt/keyrings
