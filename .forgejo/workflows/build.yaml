@@ -53,7 +53,10 @@ jobs:
     runs-on: STM32
 
     strategy:
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      matrix:
+        file:
+          - images/fw-arm-none-eabi.base.Dockerfile
+          - images/fw-arm-none-eabi.ci.Dockerfile
 
     steps:
       - name: Show env
