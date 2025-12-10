@@ -28,7 +28,7 @@ jobs:
         run: python3 -c 'import glob, json; print(f"matrix={{\"file\": {json.dumps(glob.glob(\"images/*.Dockerfile\"))}}}")'
 
       - name: Set up matrix
-        id: set-matrix
+        id: set-matrix2
         run: |
           arr="[]"
           for f in images/*.Dockerfile; do
