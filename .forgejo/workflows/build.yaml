@@ -21,8 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up matrix
+      - name: Check Python version
         run: python3 --version
+
+      - name: Generate matrix of Dockerfiles
+        run: python3 -c 'import glob, json; print(f"matrix={{\"file\": {json.dumps(glob.glob(\"images/*.Dockerfile\"))}}}")'
 
       - name: Set up matrix
         id: set-matrix
