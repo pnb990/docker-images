@@ -20,7 +20,7 @@ jobs:
         run: pipenv install --deploy
 
       - name: Generate matrix of Dockerfiles
-        run: pipenv runn python3 ./src/main.py
+        run: pipenv run python3 ./src/main.py
 
       - name: Show images list
         run: cat images/images_list.json
