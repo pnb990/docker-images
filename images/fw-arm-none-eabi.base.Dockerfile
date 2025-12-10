@@ -1,8 +1,5 @@
 # Base of all images
-FROM debian:trixie-slim
-
-
-
+FROM debian:trixie
 
 # -------------------------------------------------------------------
 # Configuration and Environment Variables

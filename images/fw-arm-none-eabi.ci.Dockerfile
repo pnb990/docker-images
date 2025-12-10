@@ -1,8 +1,5 @@
 # Base of all images
-FROM nodejs:25-trixie-slim
-
-
-
+FROM nodejs:25-trixie
 
 # -------------------------------------------------------------------
 # Configuration and Environment Variables

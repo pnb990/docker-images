@@ -59,14 +59,6 @@ jobs:
           - images/fw-arm-none-eabi.ci.Dockerfile
 
     steps:
-      - name: Show env
-        run: |
-          export
-
-      - name: Show env
-        run: |
-          cat $GITHUB_OUTPUT
-
       - name: Show matrix values
         run: |
           echo "Matrix file = ${{ matrix.file }}"
