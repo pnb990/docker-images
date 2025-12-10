@@ -40,7 +40,7 @@ jobs:
 
       - name: Debug GITHUB_OUTPUT
         run: |
-          cat $GITHUB_OUTPUT
+          export
 
   build:
     needs:
