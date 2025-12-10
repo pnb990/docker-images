@@ -25,16 +25,22 @@ jobs:
         run: python3 --version
 
       - name: Generate matrix of Dockerfiles
-        run: python3 -c 'import glob, json; print(f"matrix={{\"file\": {json.dumps(glob.glob(\"images/*.Dockerfile\"))}}}")'
-
-      - name: Set up matrix
-        id: set-matrix2
+        id: gen
         run: |
-          arr="[]"
-          for f in images/*.Dockerfile; do
-            arr=$(echo "$arr" | sed "s/]$/, \"${f}\"]/")
-          done
-          echo "matrix={\"file\": $arr}" >> "$GITHUB_OUTPUT"
+          python3 << 'EOF'
+import glob, json, os
+
+files = sorted(glob.glob("images/*.Dockerfile"))
+matrix = {"file": files}
+
+with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+    f.write(f"matrix={json.dumps(matrix)}\n")
+EOF
+
+      - name: Use matrix
+        run: |
+          echo "Matrix = ${{ steps.gen.outputs.matrix }}"
+
   build:
     needs:
       - prepare
