@@ -56,6 +56,10 @@ jobs:
         run: |
           export
 
+      - name: Show env
+        run: |
+          cat $GITHUB_OUTPUT
+
       - name: Show matrix values
         run: |
           echo "Matrix file = ${{ matrix.file }}"
