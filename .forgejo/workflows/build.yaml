@@ -4,7 +4,7 @@ name: build-docker-image
 on:
   push:
     paths:
-      - images/*.Dockerfile
+      - images/*
 
 jobs:
 
