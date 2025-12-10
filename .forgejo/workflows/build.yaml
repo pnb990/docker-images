@@ -31,7 +31,7 @@ jobs:
 import glob, json, os
 
 files = sorted(glob.glob("images/*.Dockerfile"))
-matrix = {"file": files}
+matrix = \{"file": files\}
 
 with open(os.environ["GITHUB_OUTPUT"], "a") as f:
     f.write(f"matrix={json.dumps(matrix)}\n")
