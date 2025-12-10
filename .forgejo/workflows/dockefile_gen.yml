@@ -24,3 +24,19 @@ jobs:
 
       - name: Show images list
         run: cat images/images_list.json
+
+      - name: Commit generated Dockerfiles
+        run: |
+          git config user.name "Forgejo Actions"
+          git config user.email "actions@forgejo.local"
+          
+          git add images/*
+          
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-generate Dockerfiles"
+            git push origin HEAD
+          else
+            echo "No changes to commit"
+          fi
+        
+
