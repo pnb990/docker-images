@@ -124,7 +124,7 @@ jobs:
           push: true
           file: ${{ matrix.file }}
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.img.outputs.name }}:master
+            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
 
 #       - name: Build and Push
 #         uses: docker/build-push-action@v6
