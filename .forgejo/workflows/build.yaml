@@ -1,5 +1,5 @@
 ---
-name: build-airflow-image
+name: build-docker-image
 
 on:
   push:
@@ -20,6 +20,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up matrix
+        run: python3 --version
 
       - name: Set up matrix
         id: set-matrix
