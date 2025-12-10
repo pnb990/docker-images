@@ -38,6 +38,10 @@ jobs:
         run: |
           echo "Matrix = ${{ steps.gen.outputs.matrix }}"
 
+      - name: Debug GITHUB_OUTPUT
+        run: |
+          cat $GITHUB_OUTPUT
+
   build:
     needs:
       - prepare
