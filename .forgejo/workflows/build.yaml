@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "Matrix = ${{ steps.gen.outputs.matrix }}"
 
-      - name: Debug GITHUB_OUTPUT
+      - name: Show env
         run: |
           export
 
@@ -52,6 +52,10 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
+      - name: Show env
+        run: |
+          export
+
       - name: Show matrix values
         run: |
           echo "Matrix file = ${{ matrix.file }}"
