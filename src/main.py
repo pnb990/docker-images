@@ -9,8 +9,8 @@
 Main command line entry point
 """
 
-import json
 import argparse
+import json
 import logging
 import os
 from pathlib import Path
@@ -30,10 +30,12 @@ def readable_file(prospective_file):
     """
     if not os.path.isfile(prospective_file):
         raise argparse.ArgumentTypeError(
-                f"input:{prospective_file} is not a valid file")
+            f"input:{prospective_file} is not a valid file"
+        )
     if not os.access(prospective_file, os.R_OK):
         raise argparse.ArgumentTypeError(
-                f"input:{prospective_file} is not readable")
+            f"input:{prospective_file} is not readable"
+        )
     return prospective_file
 
 
@@ -45,14 +47,52 @@ def output_dir(prospective_dir):
         os.makedirs(prospective_dir)
     if not os.path.isdir(prospective_dir):
         raise argparse.ArgumentTypeError(
-                f"output_dir:{prospective_dir} is not a valid path")
+            f"output_dir:{prospective_dir} is not a valid path"
+        )
     if not os.access(prospective_dir, os.W_OK):
         raise argparse.ArgumentTypeError(
-                f"output_dir:{prospective_dir} is not writable")
+            f"output_dir:{prospective_dir} is not writable"
+        )
     if not os.access(prospective_dir, os.R_OK):
         raise argparse.ArgumentTypeError(
-                f"output_dir:{prospective_dir} is not readable")
+            f"output_dir:{prospective_dir} is not readable"
+        )
     return prospective_dir
+
+
+def build_images(config, outdir):
+    """
+    build images from configuration
+    Args:
+        config (Config): configuration object
+        outdir (Path): output directory
+    """
+    env = Environment(loader=FileSystemLoader("ressources/templates"))
+
+    images_list = []
+
+    for i_name, image in config.images.items():
+        try:
+            for v_name, variant in config.variants.items():
+                template = env.get_template(image.template)
+
+                dev_rendered = template.render(
+                    parent=str(variant.parent), base_image=str(variant.image)
+                )
+
+                file_path = outdir / f"{i_name}.{v_name}.Dockerfile"
+                file_path.write_text(dev_rendered)
+                log.info("Generated image:%s variant %s", i_name, v_name)
+                images_list.append(f"{i_name}.{v_name}.Dockerfile")
+        except TemplateNotFound as error:
+            log.error(
+                "Template not found for image:%s error:%s", i_name, error
+            )
+
+    with open(
+        outdir / "images_list.json", "w", encoding="utf-8"
+    ) as img_list_file:
+        json.dump(images_list, img_list_file, indent=4)
 
 
 def main(argv=None):
@@ -64,54 +104,38 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-c', '--config', metavar="config file",
-                        nargs='?',
-                        type=readable_file,
-                        help='configuration file'
-                        'environment variable or ',
-                        default='config/default/config.yaml'
-                        )
+    parser.add_argument(
+        "-c",
+        "--config",
+        metavar="config file",
+        nargs="?",
+        type=readable_file,
+        help="configuration file" "environment variable or ",
+        default="config/default/config.yaml",
+    )
 
     parser.add_argument(
-            '-o', '--output-dir',
-            metavar="output directory",
-            nargs='?',
-            type=output_dir,
-            help='output directory',
-            default='images',
-            )
+        "-o",
+        "--output-dir",
+        metavar="output directory",
+        nargs="?",
+        type=output_dir,
+        help="output directory",
+        default="images",
+    )
 
     args = parser.parse_args(argv)
 
-    config = Config(file=args.config
-                    if args.config else os.environ.get("APP_CONFIG_FILE"))
-    configure_log(level=config.logs.level)
-    log.info("configuration loaded from %s", args.config)
-
-    env = Environment(loader=FileSystemLoader("ressources/templates"))
-
     outdir = Path(args.output_dir)
-    images_list = []
 
-    for i_name, image in config.images.items():
-        try:
-            for v_name, variant in config.variants.items():
-                template = env.get_template(image.template)
+    log.info("configuration loading from %s", args.config)
+    config = Config(
+        file=args.config if args.config else os.environ.get("APP_CONFIG_FILE")
+    )
+    configure_log(level=config.logs.level)
 
-                dev_rendered = template.render(
-                    parent=str(variant.parent),
-                    base_image=str(variant.image)
-                )
+    build_images(config, outdir)
 
-                (outdir / f"{i_name}.{v_name}.Dockerfile").write_text(dev_rendered)
-                log.info("Generated image:%s variant %s", i_name, v_name)
-                images_list.append(f"{i_name}.{v_name}.Dockerfile")
-        except TemplateNotFound as error:
-            log.error("Template not found for image:%s error:%s",
-                      i_name, error)
-
-    with open(outdir / "images_list.json", "w", encoding="utf-8") as img_list_file:
-        json.dump(images_list, img_list_file, indent=4)
 
 if __name__ == "__main__":
     main()

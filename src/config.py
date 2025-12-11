@@ -64,8 +64,13 @@ class ConfigNode:
             if name not in self._data:
                 self._data[name] = val
 
-    def __name__(self):
+    def get_name(self):
+        """Get configuration node name"""
         return self._name
+
+    def get_parent(self):
+        """Get configuration node parent"""
+        return self._parent
 
     def __str__(self):
         """Convert configuration node to string"""
@@ -109,8 +114,8 @@ class ConfigNode:
         path = []
         cfgnode = self
         while cfgnode is not None:
-            path.insert(0, cfgnode._name)
-            cfgnode = cfgnode._parent
+            path.insert(0, cfgnode.get_name())
+            cfgnode = cfgnode.get_parent()
         return "/".join(path)
 
     def to_dict(self):
@@ -143,6 +148,15 @@ class ConfigNode:
                 val = ConfigNode(
                     name, self, data=val, default=self._default.get(name)
                 )
+            elif isinstance(val, list):
+                for idx, item in enumerate(val):
+                    if isinstance(item, dict):
+                        val[idx] = ConfigNode(
+                            name,
+                            self,
+                            data=item,
+                            default=self._default.get(name),
+                        )
         except KeyError as error:
             raise ConfigError(
                 f"Invalid attribute '{name}' for {self}"
