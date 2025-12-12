@@ -20,4 +20,4 @@ jobs:
         run: pipenv install --deploy --dev
 
       - name: Check REUSE compliance
-        uses: reuse lint
+        uses: pipenv run reuse lint
