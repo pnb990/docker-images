@@ -3,7 +3,7 @@
 #
 # SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
 #
-# SPDX-License-Identifier: BSD-3-Clause.txt
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Configuration library

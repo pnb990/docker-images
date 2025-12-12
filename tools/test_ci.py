@@ -2,18 +2,17 @@
 # -*- coding: utf-8 -*-
 # SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
 #
-# SPDX-License-Identifier: BSD-3-Clause.txt
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Testing module
 """
 
-import sys
-from pathlib import Path
 import logging
-from dataclasses import asdict
-
+import sys
 import unittest
+from dataclasses import asdict
+from pathlib import Path
 
 try:
     import pycodestyle
@@ -21,10 +20,11 @@ try:
     from pylint import lint
     from pylint.reporters import CollectingReporter
 except ImportError as error:
-    MSG = ("missing dependency do :\n"
-           "$ pip install pycodestyle pylint\n"
-           f"error :{error}"
-           )
+    MSG = (
+        "missing dependency do :\n"
+        "$ pip install pycodestyle pylint\n"
+        f"error :{error}"
+    )
     print(MSG)
     log = logging.getLogger()
     log.error(MSG)
@@ -41,7 +41,7 @@ class TestCodeFormat(unittest.TestCase):
     """
 
     EXCLUDE_DIRS = [
-        TOP_DIR / 'lib_ext',
+        TOP_DIR / "lib_ext",
     ]
 
     def setUp(self):
@@ -50,14 +50,14 @@ class TestCodeFormat(unittest.TestCase):
         """
         self.tested_pyfiles = []
 
-        for name in TOP_DIR.rglob('*.py'):
+        for name in TOP_DIR.rglob("*.py"):
             ignore = False
 
             name = Path(name)
             basename = name.name.lower()
 
             # Skip __init__.py files
-            if basename == '__init__.py':
+            if basename == "__init__.py":
                 ignore = True
 
             # Skip any excluded directories
@@ -85,8 +85,8 @@ class TestCodeFormat(unittest.TestCase):
         report = CollectingReporter()
         pylint_opts = list(map(str, self.tested_pyfiles))
         if not show_todo:
-            print('TODO disabled (w0511)')
-            pylint_opts.append('--disable=W0511')
+            print("TODO disabled (w0511)")
+            pylint_opts.append("--disable=W0511")
         result = lint.Run(pylint_opts, reporter=report, exit=False)
 
         note = result.linter.stats.global_note
@@ -121,15 +121,15 @@ if __name__ == "__main__":
     print(f"pylint version      {pylint.__version__}")
     print(f"pycodestyle version {pycodestyle.__version__}")
 
-    if '-t' in sys.argv:
-        sys.argv.remove('-t')
+    if "-t" in sys.argv:
+        sys.argv.remove("-t")
         show_todo = True
 
-    log.debug("*"*80)
-    log.debug("*"*80)
-    log.debug("*"*80)
-    log.debug("*"*80)
-    log.debug("*"*80)
-    log.debug("*"*80)
+    log.debug("*" * 80)
+    log.debug("*" * 80)
+    log.debug("*" * 80)
+    log.debug("*" * 80)
+    log.debug("*" * 80)
+    log.debug("*" * 80)
 
     unittest.main()
