@@ -7,9 +7,11 @@ on:
       - images/*
 
 jobs:
-
   build:
     runs-on: STM32
+
+    needs:
+      - prepare
 
     strategy:
       matrix:
