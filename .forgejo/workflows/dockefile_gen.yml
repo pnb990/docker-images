@@ -41,3 +41,9 @@ jobs:
           else
             echo "No changes to commit"
           fi
+
+      - name: Trigger build workflow
+        uses: appleboy/gitea-action@v0.1.7
+        with:
+          ref: main
+          workflow: build-images.yaml
