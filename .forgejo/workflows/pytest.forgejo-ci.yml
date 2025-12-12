@@ -3,12 +3,11 @@
 # SPDX-License-Identifier: BSD-3-Clause.txt
 ---
 
-on:
+"on":
   push:
 
 jobs:
   pytest:
-    runs-on: STM32
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4

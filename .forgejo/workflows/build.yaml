@@ -1,7 +1,7 @@
 ---
 name: build-docker-image
 
-on:
+"on":
   push:
 
 jobs:
