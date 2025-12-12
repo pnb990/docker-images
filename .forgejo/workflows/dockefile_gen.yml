@@ -43,7 +43,7 @@ jobs:
           fi
 
       - name: Trigger build workflow
-        uses: appleboy/gitea-action@v0.1.7
+        uses: appleboy/forgejo-action@v0.1.7
         with:
           ref: main
           workflow: build-images.yaml
