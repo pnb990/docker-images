@@ -8,9 +8,7 @@
 
 jobs:
   pytest:
-    container:
-      image: debian:stable-slim
-
+    runs-on: PIPENV
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
