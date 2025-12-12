@@ -12,7 +12,7 @@ variants:
     image: "debian:trixie-slim"
   ci:
     parent: base.j2
-    image: "nodejs:25-trixie-slim"
+    image: "node:25-trixie-slim"
 
 images:
   fw-arm-none-eabi:

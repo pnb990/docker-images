@@ -1,7 +1,0 @@
----
-name: build-dockerfile
-
-on:
-  push:
-
-jobs:
