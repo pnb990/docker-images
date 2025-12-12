@@ -7,6 +7,43 @@ on:
       - images/*
 
 jobs:
+  prepare:
+    runs-on: STM32
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pipenv
+        run: apt-get update && apt-get install -y pipenv
+
+      - name: Install dependencies
+        run: pipenv install --deploy
+
+      - name: Clean images directory
+        run: rm -rf images/
+
+      - name: Generate matrix of Dockerfiles
+        run: pipenv run python3 ./src/main.py
+
+      - name: Show images list
+        run: cat images/images_list.json
+
+      - name: Commit generated Dockerfiles
+        run: |
+          git config user.name "Forgejo Actions"
+          git config user.email "actions@forgejo.local"
+
+          git add images/*
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-generate Dockerfiles"
+            git push origin HEAD
+          else
+            echo "No changes to commit"
+          fi
+
   build:
     runs-on: STM32
 
