@@ -56,6 +56,7 @@ jobs:
         file:
           - images/fw-arm-none-eabi.base.Dockerfile
           - images/fw-arm-none-eabi.ci.Dockerfile
+        max-parallel: 1
 
     steps:
       - name: Show matrix values
