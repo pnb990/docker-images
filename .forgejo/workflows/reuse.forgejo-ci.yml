@@ -8,6 +8,9 @@
 
 jobs:
   pytest:
+    container:
+      image: debian:stable-slim
+
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
