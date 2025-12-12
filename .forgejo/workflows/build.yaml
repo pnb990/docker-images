@@ -95,6 +95,10 @@ jobs:
           echo "Image ${{ matrix.file }} => name: $image"
 
       - name: Login to Container Registry
+
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/docker
+
         uses: docker/login-action@v3
         with:
           # registry: harbor.tech-tales.blog
