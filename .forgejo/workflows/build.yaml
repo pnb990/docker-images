@@ -53,6 +53,7 @@ jobs:
 
     strategy:
       matrix:
+        max-parallel: 1
         file:
           - images/fw-arm-none-eabi.base.Dockerfile
           - images/fw-arm-none-eabi.ci.Dockerfile
