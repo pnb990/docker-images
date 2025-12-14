@@ -32,7 +32,7 @@ jobs:
         id: images_list
         run: |
           files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
-          echo "files=$files" >> "$GITHUB_OUTPUT"
+          echo "files=$files" >> $FORGEJO_OUTPUT
           echo "files=$files"
 
       - name: HARD DEBUG
@@ -114,14 +114,14 @@ jobs:
           echo "matrix.file ${{ matrix.file }}"
           fname=$(basename "${{ matrix.file }}")
           image="${fname%.Dockerfile}"
-          echo "name=$image" >> "$GITHUB_OUTPUT"
+          echo "name=$image" >> $FORGEJO_OUTPUT
           echo "Image ${{ matrix.file }} => name: $image"
 
       - name: Get commit hash for Dockerfile
         id: file_commit
         run: |
           commit=$(git log -n 1 --format=%h -- "${{ matrix.file }}")
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> $FORGEJO_OUTPUT
 
       - name: Generate Docker tags
         id: tags
@@ -135,7 +135,7 @@ jobs:
             echo "$repo:$name"
             echo "$repo:$name-$commit"
             echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          } >> $FORGEJO_OUTPUT
 
       - name: Login to Docker Hub
         env:
