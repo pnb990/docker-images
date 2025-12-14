@@ -47,6 +47,7 @@ jobs:
         run: |
           files=$(cat images/images_list.json)
           echo "files=$files" >> "$GITHUB_OUTPUT"
+          echo "files=$files"
 
       - name: Debug generated_files
         run: |
