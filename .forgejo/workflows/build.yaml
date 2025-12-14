@@ -11,13 +11,13 @@ jobs:
   prepare:
     runs-on: STM32
     outputs:
-      generated_files: ${{ steps.list_files.outputs.files }}
+      generated_files: ${{ steps.images_list.outputs.files }}
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install pipenv
-        run: apt-get update && apt-get install -y pipenv
+        run: apt-get update && apt-get install -y pipenv jq
 
       - name: Install dependencies
         run: pipenv install --deploy
@@ -43,14 +43,14 @@ jobs:
           fi
 
       - name: List generated Dockerfiles
-        id: list_files
+        id: images_list
         run: |
           files=$(cat images/images_list.json)
           echo "files=$files" >> "$GITHUB_OUTPUT"
 
       - name: Debug generated_files
         run: |
-          echo '${{ steps.list_files.outputs.files }}'
+          echo '${{ steps.images_list.outputs.files }}'
 
   build:
     runs-on: STM32
@@ -67,6 +67,12 @@ jobs:
       - name: Debug matrix
         run: |
           echo "matrix.file=${{ matrix.file }}"
+
+      - name: Fail if matrix is empty
+        if: ${{ matrix.file == '' }}
+        run: |
+          echo "Matrix is empty – no Dockerfiles to build"
+          exit 1
 
       - name: Install docker-cli
         run: |
