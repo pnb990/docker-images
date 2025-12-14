@@ -35,6 +35,11 @@ jobs:
           echo "files=$files" >> "$GITHUB_OUTPUT"
           echo "files=$files"
 
+      - name: HARD DEBUG
+        run: |
+          echo "STEP files = ${{ steps.images_list.outputs.files }}"
+          env
+
       - name: Debug generated_files
         run: |
           echo "STEP = ${{ steps.images_list.outputs.files }}"
@@ -65,6 +70,10 @@ jobs:
         file: ${{ fromJson(needs.prepare.outputs.generated_files) }}
 
     steps:
+      - name: HARD DEBUG JOB
+        run: |
+          echo "JOB files = ${{ needs.prepare.outputs.generated_files }}"
+
       - name: Debug matrix
         run: |
           echo "matrix.file=${{ matrix.file }}"
