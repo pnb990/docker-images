@@ -43,7 +43,14 @@ jobs:
           fi
 
       - name: List generated Dockerfiles
-        run: cat images/images_list.json
+        id: list_files
+        run: |
+          files=$(cat images/images_list.json)
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Debug generated_files
+        run: |
+          echo '${{ steps.list_files.outputs.files }}'
 
   build:
     runs-on: STM32
@@ -57,6 +64,10 @@ jobs:
           fromJson: ${{ needs.prepare.outputs.generated_files }}
 
     steps:
+      - name: Debug matrix
+        run: |
+          echo "matrix.file=${{ matrix.file }}"
+
       - name: Install docker-cli
         run: |
           install -m 0755 -d /etc/apt/keyrings
