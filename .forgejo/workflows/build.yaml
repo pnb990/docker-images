@@ -28,12 +28,23 @@ jobs:
       - name: Generate matrix of Dockerfiles
         run: pipenv run python3 ./src/main.py
 
+      - name: List generated Dockerfiles
+        id: images_list
+        run: |
+          files=$(printf '%s\n' images/*.Dockerfile | jq -R . | jq -s .)
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          echo "files=$files"
+
+      - name: Debug generated_files
+        run: |
+          echo '${{ steps.images_list.outputs.files }}'
+
       - name: Commit generated Dockerfiles
         run: |
           git config user.name "Forgejo Actions"
           git config user.email "actions@forgejo.local"
 
-          git add images/*
+          git add images/*.Dockerfile
 
           if ! git diff --cached --quiet; then
             git commit -m "Auto-generate Dockerfiles"
@@ -42,16 +53,6 @@ jobs:
             echo "No changes to commit"
           fi
 
-      - name: List generated Dockerfiles
-        id: images_list
-        run: |
-          files=$(cat images/images_list.json)
-          echo "files=$files" >> "$GITHUB_OUTPUT"
-          echo "files=$files"
-
-      - name: Debug generated_files
-        run: |
-          echo '${{ steps.images_list.outputs.files }}'
 
   build:
     runs-on: STM32
@@ -61,8 +62,7 @@ jobs:
 
     strategy:
       matrix:
-        file:
-          fromJson: ${{ needs.prepare.outputs.generated_files }}
+        file: ${{ fromJson(needs.prepare.outputs.generated_files) }}
 
     steps:
       - name: Debug matrix
@@ -93,19 +93,19 @@ jobs:
           apt-get update
           apt-get install -y docker-ce-cli jq
 
-      - name: Checkout the repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract image name from Dockerfile name
+      - name: Extract image name from Dockerfile
         id: img
         run: |
           echo "matrix.file ${{ matrix.file }}"
           fname=$(basename "${{ matrix.file }}")
-          image="${fname%.Dockerfile}"   # remove .Dockerfile
-          echo "name=$image" >> $GITHUB_OUTPUT
+          image="${fname%.Dockerfile}"
+          echo "name=$image" >> "$GITHUB_OUTPUT"
           echo "Image ${{ matrix.file }} => name: $image"
 
       - name: Get commit hash for Dockerfile
@@ -113,13 +113,6 @@ jobs:
         run: |
           commit=$(git log -n 1 --format=%h -- "${{ matrix.file }}")
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-          echo "Dockerfile commit: $commit"
-
-      - name: Define image repository
-        id: image
-        run: |
-          echo "repo=${{ secrets.DOCKER_HUB_USERNAME }}/test" \
-            >> "$GITHUB_OUTPUT"
 
       - name: Generate Docker tags
         id: tags
@@ -128,26 +121,27 @@ jobs:
           name="${{ steps.img.outputs.name }}"
           commit="${{ steps.file_commit.outputs.commit }}"
 
-          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$repo:$name" >> "$GITHUB_OUTPUT"
-          echo "$repo:$name-$commit" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "$repo:$name"
+            echo "$repo:$name-$commit"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Login to Container Registry
+      - name: Login to Docker Hub
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/login-action@v3
         with:
-          # registry: harbor.tech-tales.blog
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Build & Push
+      - name: Build & Push image
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
           file: ${{ matrix.file }}
+          push: true
           tags: ${{ steps.tags.outputs.tags }}
