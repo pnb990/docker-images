@@ -58,10 +58,6 @@ jobs:
           - "images/fw-arm-none-eabi.ci.Dockerfile"
 
     steps:
-      - name: Show matrix values
-        run: |
-          echo "Matrix file = ${{ matrix.file }}"
-
       - name: Install docker-cli
         run: |
           install -m 0755 -d /etc/apt/keyrings
