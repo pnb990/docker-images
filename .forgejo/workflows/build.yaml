@@ -61,7 +61,7 @@ jobs:
     steps:
       - name: Show matrix values
         run: |
-          echo 'Matrix file = ${{ matrix.file }}'
+          echo "Matrix file = ${{ matrix.file }}"
 
       - name: Install docker-cli
         run: |
