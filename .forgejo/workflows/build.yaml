@@ -93,6 +93,12 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "Dockerfile commit: $commit"
 
+      - name: Define image repository
+        id: image
+        run: |
+          echo "repo=${{ secrets.DOCKER_HUB_USERNAME }}/test" \
+            >> "$GITHUB_OUTPUT"
+
       - name: Login to Container Registry
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
@@ -111,5 +117,8 @@ jobs:
           push: true
           file: ${{ matrix.file }}
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}-${{ steps.file_commit.outputs.commit }}
+            ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}
+            ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}-\
+${{ steps.file_commit.outputs.commit }}
+#            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
+#            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}-${{ steps.file_commit.outputs.commit }}
