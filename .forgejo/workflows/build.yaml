@@ -4,7 +4,7 @@
 ---
 name: build-docker-image
 
-on:
+"on":
   push:
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install pipenv
-        run: apt-get update && apt-get install -y pipenv jq jsonlint
+        run: apt-get update && apt-get install -y pipenv jq
 
       - name: Install dependencies
         run: pipenv install --deploy
@@ -37,7 +37,7 @@ jobs:
           echo "Generated files: $files"
           cat $FORGEJO_OUTPUT
           echo "----------------"
-          jsonlint "$FORGEJO_OUTPUT"
+          jq . "$FORGEJO_OUTPUT"
 
       - name: Commit generated Dockerfiles
         run: |
