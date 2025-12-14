@@ -37,7 +37,6 @@ jobs:
           echo "Generated files: $files"
           cat $FORGEJO_OUTPUT
           echo "----------------"
-          jq . "$FORGEJO_OUTPUT"
 
       - name: Commit generated Dockerfiles
         run: |
