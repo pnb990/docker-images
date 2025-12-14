@@ -99,6 +99,18 @@ jobs:
           echo "repo=${{ secrets.DOCKER_HUB_USERNAME }}/test" \
             >> "$GITHUB_OUTPUT"
 
+      - name: Generate Docker tags
+        id: tags
+        run: |
+          repo="${{ secrets.DOCKER_HUB_USERNAME }}/test"
+          name="${{ steps.img.outputs.name }}"
+          commit="${{ steps.file_commit.outputs.commit }}"
+
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$repo:$name" >> "$GITHUB_OUTPUT"
+          echo "$repo:$name-$commit" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
       - name: Login to Container Registry
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
@@ -116,10 +128,11 @@ jobs:
           context: .
           push: true
           file: ${{ matrix.file }}
-          tags: |
-            ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}
-            ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}-\
-            ${{ steps.file_commit.outputs.commit }}
+          tags: ${{ steps.tags.outputs.tags }}
+
+#             ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}
+#             ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}-\
+#             ${{ steps.file_commit.outputs.commit }}
 
 #            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
 #            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}-${{ steps.file_commit.outputs.commit }}
