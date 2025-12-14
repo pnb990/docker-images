@@ -33,16 +33,6 @@ jobs:
         run: |
           files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
           echo "files=$files" >> $FORGEJO_OUTPUT
-          echo "files=$files"
-
-      - name: HARD DEBUG
-        run: |
-          echo "STEP files = ${{ steps.images_list.outputs.files }}"
-          env
-
-      - name: Debug generated_files
-        run: |
-          echo "STEP = ${{ steps.images_list.outputs.files }}"
 
       - name: Commit generated Dockerfiles
         run: |
