@@ -31,13 +31,13 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
-          files=$(printf '%s\n' images/*.Dockerfile | jq -R . | jq -s .)
+          files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
           echo "files=$files" >> "$GITHUB_OUTPUT"
           echo "files=$files"
 
       - name: Debug generated_files
         run: |
-          echo '${{ steps.images_list.outputs.files }}'
+          echo "STEP = ${{ steps.images_list.outputs.files }}"
 
       - name: Commit generated Dockerfiles
         run: |
