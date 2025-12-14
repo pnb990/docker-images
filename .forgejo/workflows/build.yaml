@@ -32,7 +32,7 @@ jobs:
         id: images_list
         run: |
           set -x
-          files=${{ toJSON(images/*.Dockerfile) }}
+          files=$(printf '%s\n' images/*.Dockerfile )
           echo "files=\"$files\"" >> $FORGEJO_OUTPUT
 
 #           echo "Generated files: $files"
