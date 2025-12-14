@@ -119,6 +119,7 @@ jobs:
           tags: |
             ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}
             ${{ steps.image.outputs.repo }}:${{ steps.img.outputs.name }}-\
-${{ steps.file_commit.outputs.commit }}
+            ${{ steps.file_commit.outputs.commit }}
+
 #            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
 #            ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}-${{ steps.file_commit.outputs.commit }}
