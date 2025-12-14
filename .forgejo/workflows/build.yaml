@@ -10,8 +10,6 @@ name: build-docker-image
 jobs:
   prepare:
     runs-on: STM32
-    # outputs:
-    #   matrix: ${{ steps.gen.outputs.matrix }}
 
     steps:
       - uses: actions/checkout@v4
