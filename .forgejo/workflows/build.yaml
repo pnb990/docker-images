@@ -55,7 +55,7 @@ jobs:
       matrix:
         max-parallel: 1
         file:
-          #- images/fw-arm-none-eabi.base.Dockerfile
+          - images/fw-arm-none-eabi.base.Dockerfile
           - images/fw-arm-none-eabi.ci.Dockerfile
 
     steps:
@@ -90,7 +90,8 @@ jobs:
       - name: Extract image name from Dockerfile name
         id: img
         run: |
-          fname=$(basename "${ matrix.file }")
+          echo "matrix.file ${{ matrix.file }}"
+          fname=$(basename "${{ matrix.file }}")
           image="${fname%.Dockerfile}"   # remove .Dockerfile
           echo "name=$image" >> $GITHUB_OUTPUT
           echo "Image ${{ matrix.file }} => name: $image"
