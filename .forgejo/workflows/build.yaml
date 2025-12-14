@@ -32,7 +32,7 @@ jobs:
         id: images_list
         run: |
           set -x
-          echo "value=value1" >> $FORGEJO_OUTPUT
+          echo "files=value1" >> $FORGEJO_OUTPUT
 
 #           set -x
 #           files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
