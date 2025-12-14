@@ -37,7 +37,7 @@ jobs:
           echo "Generated files: $files"
           cat $FORGEJO_OUTPUT
           echo "----------------"
-          jsonlint "$FORGEJO_OUTPUT
+          jsonlint "$FORGEJO_OUTPUT"
 
       - name: Commit generated Dockerfiles
         run: |
