@@ -10,6 +10,8 @@ name: build-docker-image
 jobs:
   prepare:
     runs-on: STM32
+    outputs:
+      generated_files: ${{ steps.list_files.outputs.files }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +54,7 @@ jobs:
     strategy:
       matrix:
         file:
-          - $(jq -r '.[]' images/images_list.json)
+          fromJson: ${{ needs.prepare.outputs.generated_files }}
 
     steps:
       - name: Install docker-cli
