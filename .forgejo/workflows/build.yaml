@@ -32,9 +32,8 @@ jobs:
         id: images_list
         run: |
           files=$(printf '%s\n' images/*.Dockerfile )
-          echo "files=${{ toJSON($files) }}"
-          echo "files=\"$files\""
-          echo "files=\"$files\"" >> $FORGEJO_OUTPUT
+          echo "files=toto"
+          echo "files=toto" >> $FORGEJO_OUTPUT
 
 #           echo "Generated files: $files"
 #           cat $FORGEJO_OUTPUT
