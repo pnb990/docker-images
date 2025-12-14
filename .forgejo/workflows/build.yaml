@@ -33,7 +33,7 @@ jobs:
         run: |
           files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
           echo "files=$files" >> $FORGEJO_OUTPUT
-          echo "Generated files: $FORGEJO_OUTPUT"
+          echo "Generated files: $(cat $FORGEJO_OUTPUT)"
 
       - name: Commit generated Dockerfiles
         run: |
