@@ -53,6 +53,7 @@ jobs:
 
     strategy:
       matrix:
+        max-parallel: 1
         file:
           - "images/fw-arm-none-eabi.base.Dockerfile"
           - "images/fw-arm-none-eabi.ci.Dockerfile"
@@ -112,5 +113,4 @@ jobs:
           push: true
           file: ${{ matrix.file }}
           tags: |
-            #  ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
