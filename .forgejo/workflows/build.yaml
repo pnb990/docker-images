@@ -90,7 +90,7 @@ jobs:
       - name: Extract image name from Dockerfile name
         id: img
         run: |
-          fname=$(basename "${{ matrix.file }}")
+          fname=$(basename "${ matrix.file }")
           image="${fname%.Dockerfile}"   # remove .Dockerfile
           echo "name=$image" >> $GITHUB_OUTPUT
           echo "Image ${{ matrix.file }} => name: $image"
