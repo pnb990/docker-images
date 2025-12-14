@@ -40,6 +40,9 @@ jobs:
             echo "No changes to commit"
           fi
 
+      - name: List generated Dockerfiles
+        run: cat images/images_list.json
+
   build:
     runs-on: STM32
 
@@ -49,7 +52,7 @@ jobs:
     strategy:
       matrix:
         file:
-          fromJson: "images/images_list.json"
+          - $(jq -r '.[]' images/images_list.json)
 
     steps:
       - name: Install docker-cli
