@@ -31,6 +31,7 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
+          set -x
           echo "files=$(ls images/*.Dockerfile)" >> $FORGEJO_OUTPUT
 
 #           set -x
