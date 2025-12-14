@@ -95,6 +95,9 @@ jobs:
           echo "name=$image" >> $GITHUB_OUTPUT
           echo "Image ${{ matrix.file }} => name: $image"
 
+      - name: Show environment variables
+        run: export
+
       - name: Login to Container Registry
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
@@ -113,4 +116,5 @@ jobs:
           push: true
           file: ${{ matrix.file }}
           tags: |
+            #  ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/test:${{ steps.img.outputs.name }}
