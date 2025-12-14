@@ -31,12 +31,14 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
-          set -x
-          files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
-          echo "files=\"$files\"" >> $FORGEJO_OUTPUT
-          echo "Generated files: $files"
-          cat $FORGEJO_OUTPUT
-          echo "----------------"
+          echo "files=$(ls images/*.Dockerfile)" >> $FORGEJO_OUTPUT
+
+#           set -x
+#           files=$(printf '%s\n' images/*.Dockerfile | jq -c -R . | jq -s .)
+#           echo "files=\"$files\"" >> $FORGEJO_OUTPUT
+#           echo "Generated files: $files"
+#           cat $FORGEJO_OUTPUT
+#           echo "----------------"
 
 #           echo "files=value1" >> $FORGEJO_OUTPUT
 #           set -x
@@ -65,7 +67,7 @@ jobs:
 
     strategy:
       matrix:
-        file: ${{ fromJson(needs.prepare.outputs.generated_files) }}
+        file: ${{ needs.prepare.outputs.generated_files }}
 
     steps:
       - name: HARD DEBUG JOB
