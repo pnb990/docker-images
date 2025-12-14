@@ -53,10 +53,9 @@ jobs:
 
     strategy:
       matrix:
-        file: [
-          "images/fw-arm-none-eabi.base.Dockerfile",
-          "images/fw-arm-none-eabi.ci.Dockerfile"
-        ]
+        file:
+          - "images/fw-arm-none-eabi.base.Dockerfile"
+          - "images/fw-arm-none-eabi.ci.Dockerfile"
 
     steps:
       - name: Show matrix values
