@@ -32,16 +32,7 @@ jobs:
         id: images_list
         run: |
           files=$(printf '%s\n' images/*.Dockerfile )
-          echo "files=toto"
-          echo "files=toto" >> $FORGEJO_OUTPUT
-
-#           echo "Generated files: $files"
-#           cat $FORGEJO_OUTPUT
-#           echo "----------------"
-
-#           echo "files=value1" >> $FORGEJO_OUTPUT
-#           set -x
-#           jq . "$FORGEJO_OUTPUT"
+          echo "files=$files" >> $FORGEJO_OUTPUT
 
       - name: Commit generated Dockerfiles
         run: |
