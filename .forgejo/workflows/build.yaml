@@ -58,7 +58,7 @@ jobs:
 
     strategy:
       matrix:
-        file: ${{ needs.prepare.outputs.generated_files }}
+        file: ${{ fromJson(needs.prepare.outputs.generated_files) }}
 
     steps:
       - name: HARD DEBUG JOB
