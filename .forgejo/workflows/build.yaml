@@ -67,10 +67,10 @@ jobs:
 
       - name: Debug matrix
         run: |
-          echo "matrix.files=${{ matrix.files }}"
+          echo "matrix.file=${{ matrix.file }}"
 
       - name: Fail if matrix is empty
-        if: ${{ matrix.files == '' }}
+        if: ${{ matrix.file == '' }}
         run: |
           echo "Matrix is empty – no Dockerfiles to build"
           exit 1
