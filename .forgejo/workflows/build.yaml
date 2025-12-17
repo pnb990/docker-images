@@ -102,16 +102,16 @@ jobs:
       - name: Extract image name from Dockerfile
         id: img
         run: |
-          echo "matrix.files ${{ matrix.files }}"
-          fname=$(basename "${{ matrix.files }}")
+          echo "matrix.file ${{ matrix.file }}"
+          fname=$(basename "${{ matrix.file }}")
           image="${fname%.Dockerfile}"
           echo "name=$image" >> $FORGEJO_OUTPUT
-          echo "Image ${{ matrix.files }} => name: $image"
+          echo "Image ${{ matrix.file }} => name: $image"
 
       - name: Get commit hash for Dockerfile
         id: file_commit
         run: |
-          commit=$(git log -n 1 --format=%h -- "${{ matrix.files }}")
+          commit=$(git log -n 1 --format=%h -- "${{ matrix.file }}")
           echo "commit=$commit" >> $FORGEJO_OUTPUT
 
       - name: Generate Docker tags
@@ -142,6 +142,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.files }}
+          file: ${{ matrix.file }}
           push: true
           tags: ${{ steps.tags.outputs.tags }}
