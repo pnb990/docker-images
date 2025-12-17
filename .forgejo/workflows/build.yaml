@@ -35,8 +35,10 @@ jobs:
     steps:
       - name: Debug matrix
         run: |
-          echo "matrix.file=${{ matrix.node }}"
+          echo "matrix.node=${{ matrix.node }}"
           echo "matrix.variant=${{ matrix.variant }}"
+          echo "matrix.obj=${{ matrix.obj }}"
+          echo "matrix.obj.variant=${{ matrix.obj.variant }}"
 
 
   prepare:
