@@ -31,8 +31,8 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
-          files=$(find images -name '*.Dockerfile' -printf '"%p",')
-          files="[${files%,}]"
+          # Produce a robust JSON array of file paths (handles zero or many files)
+          files=$(find images -name '*.Dockerfile' -print0 | jq -Rs 'split("\u0000")[:-1]')
           echo "files=$files" >> $FORGEJO_OUTPUT
 
       - name: Commit generated Dockerfiles
