@@ -75,6 +75,7 @@ jobs:
       - name: HARD DEBUG JOB
         run: |
           echo "JOB files = ${{ needs.prepare.outputs.generated_files }}"
+          echo "JOB file = ${{ fromJSON(needs.prepare.outputs.generated_files) }}"
 
       - name: Debug matrix
         run: |
