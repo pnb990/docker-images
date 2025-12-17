@@ -33,9 +33,11 @@ jobs:
     container:
       image: debian:${{ matrix.obj.variant }}
     steps:
-      - uses: https://code.forgejo.org/actions/setup-node@v4
-        with:
-          node-version: '${{ matrix.node }}'
+      - name: Debug matrix
+        run: |
+          echo "matrix.file=${{ matrix.node }}"
+          echo "matrix.variant=${{ matrix.variant }}"
+
 
   prepare:
     runs-on: STM32
