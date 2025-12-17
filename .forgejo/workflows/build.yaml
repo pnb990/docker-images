@@ -69,7 +69,7 @@ jobs:
 
     strategy:
       matrix:
-        file: ${{ fromJson(needs.prepare.outputs.generated_files) }}
+        file: ${{ needs.prepare.outputs.generated_files }}
 
     steps:
       - name: HARD DEBUG JOB
