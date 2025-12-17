@@ -36,7 +36,8 @@ jobs:
           echo "files=$files" >> $FORGEJO_OUTPUT
 
       - name: Show generated Dockerfiles
-        run: echo "Generated Dockerfiles: ${{ steps.images_list.outputs.files }}"
+        run: |
+          echo "Generated Dockerfiles: ${{ steps.images_list.outputs.files }}"
 
       - name: Commit generated Dockerfiles
         run: |
