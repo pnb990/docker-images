@@ -9,7 +9,7 @@ name: build-docker-image
 
 jobs:
   matrix-generator:
-    runs-on: docker
+    runs-on: STM32
     outputs:
       variants: ${{ steps.generate_matrix.outputs.variants }}
       nodes: ${{ steps.generate_matrix.outputs.nodes }}
@@ -20,7 +20,7 @@ jobs:
           echo 'nodes=["18", "20"]' >> $GITHUB_OUTPUT
   test:
     needs: matrix-generator
-    runs-on: docker
+    runs-on: STM32
     strategy:
       matrix:
         variant: ${{ fromJSON(needs.matrix-generator.outputs.variants) }}
