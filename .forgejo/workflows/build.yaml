@@ -31,9 +31,16 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
-          files=$(find images -name '*.Dockerfile' -printf '"%p",')
-          files="[${files%,}]"
-          echo "files=$files" >> $FORGEJO_OUTPUT
+          files=$(printf '%s\n' images/*.Dockerfile | jq -R . | jq -s .)
+          {
+            echo "files<<EOF"
+            echo "$files"
+            echo "EOF"
+          } >> "$FORGEJO_OUTPUT"
+
+#           files=$(find images -name '*.Dockerfile' -printf '"%p",')
+#           files="[${files%,}]"
+#           echo "files=$files" >> $FORGEJO_OUTPUT
 
       - name: Show generated Dockerfiles
         run: |
