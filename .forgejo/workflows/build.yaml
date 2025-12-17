@@ -38,9 +38,9 @@ jobs:
             echo "EOF"
           } >> "$FORGEJO_OUTPUT"
 
-#           files=$(find images -name '*.Dockerfile' -printf '"%p",')
-#           files="[${files%,}]"
-#           echo "files=$files" >> $FORGEJO_OUTPUT
+          #           files=$(find images -name '*.Dockerfile' -printf '"%p",')
+          #           files="[${files%,}]"
+          #           echo "files=$files" >> $FORGEJO_OUTPUT
 
       - name: Show generated Dockerfiles
         run: echo "Generated Dockerfiles: ${{ steps.images_list.outputs.files }}"
