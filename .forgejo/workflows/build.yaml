@@ -30,8 +30,6 @@ jobs:
       matrix:
         variant: ${{ fromJSON(needs.matrix-generator.outputs.variants) }}
         node: ${{ fromJSON(needs.matrix-generator.outputs.nodes) }}
-    container:
-      image: debian:${{ matrix.obj.variant }}
     steps:
       - name: Debug matrix
         run: |
