@@ -11,7 +11,7 @@ jobs:
   prepare:
     runs-on: STM32
     outputs:
-      dockerfiles: ${{ steps.images_list.outputs }}
+      dockerfiles: ${{ steps.images_list.outputs.files }}
 
     steps:
       - uses: actions/checkout@v4
