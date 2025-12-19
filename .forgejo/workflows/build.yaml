@@ -108,6 +108,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get user info
+        run: echo "Running as $(whoami) UID=$(id -u) GID=$(id -g)"
+
       - name: test docker version
         run: docker version
 
