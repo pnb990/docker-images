@@ -33,7 +33,7 @@ jobs:
         run: |
           files=$(find images -name '*.Dockerfile' -printf '"%p",')
           files="[${files%,}]"
-          echo "files=$files" >> $FORGEJO_OUTPUT
+          echo "files={\"files\"=$files}" >> $FORGEJO_OUTPUT
           cat "$FORGEJO_OUTPUT"
 
 #           files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
@@ -66,8 +66,7 @@ jobs:
       - prepare
 
     strategy:
-      matrix:
-        file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }}
+      matrix: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }}
 
     steps:
       - name: HARD DEBUG JOB
