@@ -66,9 +66,9 @@ jobs:
 
     strategy:
       matrix:
-        # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
         - "images/fw-arm-none-eabi.base.Dockerfile"
         - "images/fw-arm-none-eabi.ci.Dockerfile"
+        # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
 
     steps:
       - name: HARD DEBUG JOB
