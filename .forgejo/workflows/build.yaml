@@ -34,6 +34,7 @@ jobs:
           files=$(find images -name '*.Dockerfile' -printf '"%p",')
           files="[${files%,}]"
           echo "files=$files" >> $FORGEJO_OUTPUT
+          cat "$FORGEJO_OUTPUT"
 
 #           files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
 #           {
