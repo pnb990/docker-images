@@ -79,7 +79,7 @@ jobs:
 
       - name: Debug matrix
         run: |
-          echo "matrix.file=${{ matrix }}"
+          echo "matrix.file=${{ matrix.files }}"
 
 #       - name: Fail if matrix is empty
 #         if: ${{ matrix.file == '' }}
