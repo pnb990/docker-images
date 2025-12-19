@@ -71,7 +71,7 @@ jobs:
     steps:
       - name: HARD DEBUG JOB
         run: |
-          echo "JOB files = ${{ needs.prepare.outputs.dockerfiles }}"
+          echo "JOB files = '${{ needs.prepare.outputs.dockerfiles }}'"
 
       - name: HARD DEBUG JOB
         run: |
