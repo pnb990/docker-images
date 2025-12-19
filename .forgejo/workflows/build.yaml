@@ -8,37 +8,6 @@ name: build-docker-image
   push:
 
 jobs:
-  matrix-generator:
-    runs-on: STM32
-    outputs:
-      variants: ${{ steps.generate_matrix.outputs.variants }}
-      nodes: ${{ steps.generate_matrix.outputs.nodes }}
-    steps:
-      - id: generate_matrix
-        run: |
-          echo 'variants=["bookworm", "bullseye"]' >> $GITHUB_OUTPUT
-          echo 'nodes=["18", "20"]' >> $GITHUB_OUTPUT
-
-      - name: Show generated Dockerfiles
-        run: |
-          echo "Generated Dockerfiles: ${{ steps.images_list.outputs.files }}"
-
-  test:
-    needs: matrix-generator
-    runs-on: STM32
-    strategy:
-      matrix:
-        variant: ${{ fromJSON(needs.matrix-generator.outputs.variants) }}
-        node: ${{ fromJSON(needs.matrix-generator.outputs.nodes) }}
-    steps:
-      - name: Debug matrix
-        run: |
-          echo "matrix.node=${{ matrix.node }}"
-          echo "matrix.variant=${{ matrix.variant }}"
-          echo "matrix.obj=${{ matrix.obj }}"
-          echo "matrix.obj.variant=${{ matrix.obj.variant }}"
-
-
   prepare:
     runs-on: STM32
     outputs:
@@ -62,14 +31,14 @@ jobs:
       - name: List generated Dockerfiles
         id: images_list
         run: |
-          echo 'dockerfiles=[ "images/fw-arm-none-eabi.base.Dockerfile", "images/fw-arm-none-eabi.ci.Dockerfile" ]' >> $GITHUB_OUTPUT
-#           files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
-#           {
-#             echo "files<<EOF"
-#             echo "$files"
-#             echo "EOF"
-#           } >> "$FORGEJO_OUTPUT"
-#
+          files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
+          {
+            echo "files<<EOF"
+            echo "$files"
+            echo "EOF"
+          } >> "$FORGEJO_OUTPUT"
+          cat "$FORGEJO_OUTPUT"
+
 #           files=$(find images -name '*.Dockerfile' -printf '"%p",')
 #           files="[${files%,}]"
 #           echo "files=$files" >> $FORGEJO_OUTPUT
