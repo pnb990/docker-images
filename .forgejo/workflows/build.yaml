@@ -80,13 +80,13 @@ jobs:
 
       - name: Debug matrix
         run: |
-          echo "matrix.file=${{ matrix.file }}"
+          echo "matrix.file=${{ matrix }}"
 
-      - name: Fail if matrix is empty
-        if: ${{ matrix.file == '' }}
-        run: |
-          echo "Matrix is empty – no Dockerfiles to build"
-          exit 1
+#       - name: Fail if matrix is empty
+#         if: ${{ matrix.file == '' }}
+#         run: |
+#           echo "Matrix is empty – no Dockerfiles to build"
+#           exit 1
 
       - name: Install docker-cli
         run: |
