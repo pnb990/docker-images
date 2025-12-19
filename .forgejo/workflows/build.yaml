@@ -109,7 +109,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v6
 
       - name: Extract image name from Dockerfile
         id: img
@@ -143,7 +143,7 @@ jobs:
       - name: Login to Docker Hub
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/docker
-        uses: docker/login-action@v3
+        uses: docker/login-action@v6
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
