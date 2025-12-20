@@ -108,21 +108,21 @@ jobs:
       - name: Set image tags
         id: img
         run: |
-          name="${{ matrix.name }}"
+          variant="${{ matrix.variant }}"
           branch_head=$(git rev-parse HEAD)
           repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
           commit="${{ steps.file_commit.outputs.file_commit }}"
+          latest=''
 
-          if [ steps.file_commit.outputs.is_latest = 'true' ]; then
+          if [ ${{ steps.file_commit.outputs.is_latest }} = 'true' ]; then
             latest='${repo}:latest'
-          else
-            latest=''
           fi
+
           {
             echo "tags<<EOF"
-            echo "$repo:$name"
-            echo "$repo:$FORGEJO_REF_NAME"
-            echo "$repo:$commit"
+            echo "$repo:${variant}"
+            echo "$repo:${variant}-$FORGEJO_REF_NAME"
+            echo "$repo:${variant}-$commit"
             echo "$latest"
             echo "EOF"
           } >> $FORGEJO_OUTPUT
