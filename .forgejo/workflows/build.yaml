@@ -99,7 +99,7 @@ jobs:
             echo "dockerfile=$file"
             echo "tags<<EOF"
             echo "$repo:$name"
-            echo "$repo:$name-${{ FORGEJO_REF_NAME }}"
+            echo "$repo:$name-$FORGEJO_REF_NAME"
             echo "$repo:$name-$commit"
             echo "EOF"
           } >> $FORGEJO_OUTPUT
