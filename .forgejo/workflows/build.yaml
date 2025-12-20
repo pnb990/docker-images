@@ -111,6 +111,18 @@ jobs:
       - name: Get user info
         run: echo "Running as $(whoami) UID=$(id -u) GID=$(id -g)"
 
+      - name: List files in workspace
+        run: ls -lR .
+
+      - name: detect where we are
+        run: pwd
+
+      - name: test docker cli
+        run: docker --help
+
+      - name: test docker info
+        run: docker info
+
       - name: test docker version
         run: docker version
 
