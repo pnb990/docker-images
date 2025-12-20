@@ -85,7 +85,7 @@ jobs:
           commit=$(git log -n 1 --format=%h -- "$file")
           {
             echo "commit=$commit"
-            echo "file=$file"
+            echo "dockerfile=$file"
           } >> $FORGEJO_OUTPUT
 
       - name: Extract image name from Dockerfile
@@ -96,7 +96,6 @@ jobs:
           repo="${{ secrets.DOCKER_HUB_USERNAME }}/test"
           commit="${{ steps.file_commit.outputs.commit }}"
           {
-            echo "dockerfile=$file"
             echo "tags<<EOF"
             echo "$repo:$name"
             echo "$repo:$name-$FORGEJO_REF_NAME"
@@ -119,6 +118,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ steps.img.outputs.dockerfile }}
+          file: ${{ steps.file_commit.outputs.dockerfile }}
           push: true
           tags: ${{ steps.img.outputs.tags }}
