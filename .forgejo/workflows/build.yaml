@@ -121,8 +121,8 @@ jobs:
           {
             echo "tags<<EOF"
             echo "$repo:$name"
-            echo "$repo:$name-$FORGEJO_REF_NAME"
-            echo "$repo:$name-$commit"
+            echo "$repo:$FORGEJO_REF_NAME"
+            echo "$repo:$commit"
             echo "$latest"
             echo "EOF"
           } >> $FORGEJO_OUTPUT
