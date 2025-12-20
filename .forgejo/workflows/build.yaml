@@ -93,7 +93,7 @@ jobs:
         run: |
           name="${{ matrix.name }}"
           branch_head=$(git rev-parse HEAD)
-          repo="${{ secrets.DOCKER_HUB_USERNAME }}/test"
+          repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
           commit="${{ steps.file_commit.outputs.commit }}"
           {
             echo "tags<<EOF"
