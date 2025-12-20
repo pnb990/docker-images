@@ -81,20 +81,37 @@ jobs:
       - name: Get commit hash for Dockerfile
         id: file_commit
         run: |
-          file="images/${{ matrix.name }}.${{ matrix.variant }}.Dockerfile"
-          commit=$(git log -n 1 --format=%h -- "$file")
-          {
-            echo "commit=$commit"
-            echo "dockerfile=$file"
-          } >> $FORGEJO_OUTPUT
+          set -e
 
-      - name: Extract image name from Dockerfile
+          file="images/${{ matrix.name }}.${{ matrix.variant }}.Dockerfile"
+
+          file_commit=$(git log -n 1 --format=%H -- "$file")
+          branch_head=$(git rev-parse HEAD)
+          branch_name="$FORGEJO_REF_NAME"
+
+          if [ "$file_commit" = "$branch_head" ]; then
+            is_latest=true
+          else
+            is_latest=false
+          fi
+
+          echo "file_commit=$file_commit" >> "$FORGEJO_OUTPUT"
+          echo "branch_name=$branch_name" >> "$FORGEJO_OUTPUT"
+          echo "is_latest=$is_latest" >> "$FORGEJO_OUTPUT"
+          echo "dockerfile=$file" >> "$FORGEJO_OUTPUT"
+
+          echo "Dockerfile commit : $file_commit"
+          echo "Branch head       : $branch_head"
+          echo "Branch            : $branch_name"
+          echo "Is latest         : $is_latest"
+
+      - name: Set image tags
         id: img
         run: |
           name="${{ matrix.name }}"
           branch_head=$(git rev-parse HEAD)
           repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
-          commit="${{ steps.file_commit.outputs.commit }}"
+          commit="${{ steps.file_commit.outputs.file_commit }}"
           {
             echo "tags<<EOF"
             echo "$repo:$name"
