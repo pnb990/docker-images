@@ -115,7 +115,7 @@ jobs:
           latest=''
 
           if [ ${{ steps.file_commit.outputs.is_latest }} = 'true' ]; then
-              latest="$repo:latest"
+              latest="$repo:${variant}-latest"
           fi
 
           {
