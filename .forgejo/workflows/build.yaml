@@ -59,7 +59,7 @@ jobs:
 
 
   build:
-    runs-on: STM32
+    runs-on: host
 
     needs:
       - prepare
