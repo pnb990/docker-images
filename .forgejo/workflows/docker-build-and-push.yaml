@@ -63,7 +63,7 @@ jobs:
     strategy:
       matrix:
         # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
-        name: ["fw-arm-none-eabi"]
+        name: ["fw-arm-none-eabi-13.2.rel1", "python3"]
         variant: [base, ci]
 
     steps:
