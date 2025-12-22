@@ -4,6 +4,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Base of all images
-FROM node:25-trixie-slim
-
-
+FROM debian:trixie-slim

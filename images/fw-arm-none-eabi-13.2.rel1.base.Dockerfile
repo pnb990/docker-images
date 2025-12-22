@@ -8,7 +8,6 @@ FROM debian:trixie-slim
 
 
 
-
 #
 # -------------------------------------------------------------------
 # Configuration and Environment Variables
@@ -42,5 +41,4 @@ RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && mv /tmp/arm-toolchain/* ${ARM_TOOLCHAIN_DIR} \
     && rm -rf /tmp/arm-toolchain
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}
-
 

@@ -11,8 +11,8 @@ variants:
     parent: base.j2
     image: "debian:trixie-slim"
   ci:
-    parent: base.j2
-    image: "node:25-trixie-slim"
+    parent: forgejo.j2
+    image: "debian:trixie-slim"
 
 images:
   fw-arm-none-eabi-13.2.rel1:
