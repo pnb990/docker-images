@@ -10,7 +10,6 @@ FROM debian:trixie-slim
 
 # Forgejo layers
 RUN apt-get update && apt-get install -y nodejs npm openssh-client
-RUN npm install -g forgejo-cli
 
 
 #
