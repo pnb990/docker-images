@@ -13,6 +13,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
@@ -88,6 +89,7 @@ def build_images(config, outdir):
             log.error(
                 "Template not found for image:%s error:%s", i_name, error
             )
+            sys.exit(1)
 
     with open(
         outdir / "images_list.json", "w", encoding="utf-8"
