@@ -11,9 +11,11 @@ variants:
     parent: base.j2
     image: "debian:trixie-slim"
   ci:
-    parent: base.j2
-    image: "node:25-trixie-slim"
+    parent: forgejo.j2
+    image: "debian:trixie-slim"
 
 images:
-  fw-arm-none-eabi:
-    template: "fw-arm-none-eabi.j2"
+  fw-arm-none-eabi-13.2.rel1:
+    template: "fw-arm-none-eabi-13.2.rel1.j2"
+  python3:
+    template: "python3.j2"

@@ -1,12 +1,15 @@
 
+
 # SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Base of all images
-FROM node:25-trixie-slim
+FROM debian:trixie-slim
 
 
+# Forgejo layers
+RUN apt-get update && apt-get install -y nodejs npm openssh-client
 
 
 #
@@ -42,5 +45,4 @@ RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && mv /tmp/arm-toolchain/* ${ARM_TOOLCHAIN_DIR} \
     && rm -rf /tmp/arm-toolchain
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}
-
 

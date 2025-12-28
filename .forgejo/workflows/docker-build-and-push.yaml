@@ -8,62 +8,62 @@ name: build-docker-image
   push:
 
 jobs:
-  prepare:
-    runs-on: STM32
-    outputs:
-      dockerfiles: ${{ steps.images_list.outputs.files }}
+  # prepare:
+  #   runs-on: STM32
+  #   outputs:
+  #     dockerfiles: ${{ steps.images_list.outputs.files }}
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Install pipenv
-        run: apt-get update && apt-get install -y pipenv jq
+  #     - name: Install pipenv
+  #       run: apt-get update && apt-get install -y pipenv jq
 
-      - name: Install dependencies
-        run: pipenv install --deploy
+  #     - name: Install dependencies
+  #       run: pipenv install --deploy
 
-      - name: Clean images directory
-        run: rm -rf images/
+  #     - name: Clean images directory
+  #       run: rm -rf images/
 
-      - name: Generate matrix of Dockerfiles
-        run: pipenv run python3 ./src/main.py
+  #     - name: Generate matrix of Dockerfiles
+  #       run: pipenv run python3 ./src/main.py
 
-      - name: List generated Dockerfiles
-        id: images_list
-        run: |
-          files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
-          {
-            echo "files<<EOF"
-            echo "$files"
-            echo "EOF"
-          } >> "$FORGEJO_OUTPUT"
-          cat "$FORGEJO_OUTPUT"
+  #     - name: List generated Dockerfiles
+  #       id: images_list
+  #       run: |
+  #         files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
+  #         {
+  #           echo "files<<EOF"
+  #           echo "$files"
+  #           echo "EOF"
+  #         } >> "$FORGEJO_OUTPUT"
+  #         cat "$FORGEJO_OUTPUT"
 
-      - name: Commit generated Dockerfiles
-        run: |
-          git config user.name "Forgejo Actions"
-          git config user.email "actions@forgejo.local"
+  #     - name: Commit generated Dockerfiles
+  #       run: |
+  #         git config user.name "Forgejo Actions"
+  #         git config user.email "actions@forgejo.local"
 
-          git add images/*.Dockerfile
+  #         git add images/*.Dockerfile
 
-          if ! git diff --cached --quiet; then
-            git commit -m "Auto-generate Dockerfiles"
-            git push origin HEAD
-          else
-            echo "No changes to commit"
-          fi
+  #         if ! git diff --cached --quiet; then
+  #           git commit -m "Auto-generate Dockerfiles"
+  #           git push origin HEAD
+  #         else
+  #           echo "No changes to commit"
+  #         fi
 
 
   build:
     runs-on: host
 
-    needs:
-      - prepare
+    # needs:
+    #   - prepare
 
     strategy:
       matrix:
         # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
-        name: ["fw-arm-none-eabi"]
+        name: ["fw-arm-none-eabi-13.2.rel1", "python3"]
         variant: [base, ci]
 
     steps:

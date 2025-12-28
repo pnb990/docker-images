@@ -1,4 +1,6 @@
 [
-    "fw-arm-none-eabi.base.Dockerfile",
-    "fw-arm-none-eabi.ci.Dockerfile"
+    "fw-arm-none-eabi-13.2.rel1.base.Dockerfile",
+    "fw-arm-none-eabi-13.2.rel1.ci.Dockerfile",
+    "python3.base.Dockerfile",
+    "python3.ci.Dockerfile"
 ]
