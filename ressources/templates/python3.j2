@@ -4,5 +4,12 @@
     SPDX-License-Identifier: BSD-3-Clause
 #}
 {% extends "base.j2" %}
+RUN apt-get update && apt-get install -y pipenv locales \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* \
+ && sed -i \
+    -e '/en_US.UTF-8/s/^# //g' \
+    -e '/fr_FR.UTF-8/s/^# //g' \
+    /etc/locale.gen \
+ && locale-gen
 
-RUN apt-get update && apt-get install -y pipenv
