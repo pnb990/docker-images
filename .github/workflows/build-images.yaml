@@ -140,29 +140,48 @@ jobs:
       - name: Set image tags
         id: img
         run: |
+          set -e
+
+          name="${{ matrix.name }}"
           variant="${{ matrix.variant }}"
-          repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
           commit="${{ steps.file_commit.outputs.file_commit }}"
-          latest=''
+
+          # The secret is interpolated into this script as-is: a trailing
+          # newline, a space or an uppercase letter in it produces an invalid
+          # docker reference, and the log masks the value so the error is
+          # unreadable. Normalise it here.
+          owner=$(printf '%s' '${{ secrets.DOCKER_HUB_USERNAME }}' \
+              | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+          repo="$owner/$name"
+
+          if [ -z "$owner" ]; then
+            echo "DOCKER_HUB_USERNAME is empty, cannot build a tag." >&2
+            exit 1
+          fi
 
           # A docker tag cannot contain a slash, and branch names do:
           # `tmp/review_image_building` would give the invalid tag
           # `base-tmp/review_image_building`.
-          branch=$(echo "$FORGEJO_REF_NAME" | tr '/' '-')
-
-          if [ ${{ steps.file_commit.outputs.is_latest }} = 'true' ]; then
-              latest="$repo:${variant}-latest"
-          fi
+          branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
 
           {
             echo "tags<<EOF"
             echo "$repo:${variant}"
             echo "$repo:${variant}-$branch"
             echo "$repo:${variant}-$commit"
-            echo "$latest"
+            if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
+              echo "$repo:${variant}-latest"
+            fi
             echo "EOF"
-          } >> $FORGEJO_OUTPUT
-          cat "$FORGEJO_OUTPUT"
+          } >> "$FORGEJO_OUTPUT"
+
+          # Same list with the owner replaced, so a malformed reference stays
+          # visible even though the secret is masked in the log.
+          echo "owner: ${#owner} chars"
+          echo "tags:"
+          echo "  <owner>/$name:${variant}"
+          echo "  <owner>/$name:${variant}-$branch"
+          echo "  <owner>/$name:${variant}-$commit"
 
       - name: Login to Docker Hubs
         uses: docker/login-action@v3
