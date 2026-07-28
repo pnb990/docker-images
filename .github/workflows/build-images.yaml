@@ -57,14 +57,6 @@ jobs:
   build-images:
     runs-on: host
 
-    # buildx keeps its builder state in $DOCKER_CONFIG/buildx. Setting this on
-    # the login and build steps only left `Setup Docker Buildx` writing to
-    # ~/.docker, so the build step found no builder and silently fell back to
-    # the `docker` driver, which cannot export a cache. Job-wide, everyone
-    # shares the same state.
-    env:
-      DOCKER_CONFIG: ${{ runner.temp }}/docker
-
     # needs:
     #   - prepare
 
@@ -96,6 +88,17 @@ jobs:
         run: |
           echo "matrix.name=${{ matrix.name }}"
           echo "matrix.variant=${{ matrix.variant }}"
+
+      # buildx keeps its builder state in $DOCKER_CONFIG/buildx, and the login
+      # writes its credentials there. Every step must see the same directory:
+      # when only the login and build steps had it, `Setup Docker Buildx`
+      # wrote to ~/.docker, the build step found no builder and fell back to
+      # the `docker` driver, which cannot export a cache.
+      #
+      # Exported here rather than in the job `env:` because the `runner`
+      # context is not available at that level.
+      - name: Setup docker config dir
+        run: echo "DOCKER_CONFIG=${RUNNER_TEMP:-/tmp}/docker" >> "$FORGEJO_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
