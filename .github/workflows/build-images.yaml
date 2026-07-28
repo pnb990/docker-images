@@ -57,6 +57,14 @@ jobs:
   build-images:
     runs-on: host
 
+    # buildx keeps its builder state in $DOCKER_CONFIG/buildx. Setting this on
+    # the login and build steps only left `Setup Docker Buildx` writing to
+    # ~/.docker, so the build step found no builder and silently fell back to
+    # the `docker` driver, which cannot export a cache. Job-wide, everyone
+    # shares the same state.
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/docker
+
     # needs:
     #   - prepare
 
@@ -92,8 +100,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # docker-container, not the default `docker` driver: exporting a
+      # registry cache is only supported by the former.
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       - name: Get commit hash for Dockerfile
         id: file_commit
@@ -126,10 +138,14 @@ jobs:
         id: img
         run: |
           variant="${{ matrix.variant }}"
-          branch_head=$(git rev-parse HEAD)
           repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
           commit="${{ steps.file_commit.outputs.file_commit }}"
           latest=''
+
+          # A docker tag cannot contain a slash, and branch names do:
+          # `tmp/review_image_building` would give the invalid tag
+          # `base-tmp/review_image_building`.
+          branch=$(echo "$FORGEJO_REF_NAME" | tr '/' '-')
 
           if [ ${{ steps.file_commit.outputs.is_latest }} = 'true' ]; then
               latest="$repo:${variant}-latest"
@@ -138,7 +154,7 @@ jobs:
           {
             echo "tags<<EOF"
             echo "$repo:${variant}"
-            echo "$repo:${variant}-$FORGEJO_REF_NAME"
+            echo "$repo:${variant}-$branch"
             echo "$repo:${variant}-$commit"
             echo "$latest"
             echo "EOF"
@@ -146,16 +162,12 @@ jobs:
           cat "$FORGEJO_OUTPUT"
 
       - name: Login to Docker Hubs
-        env:
-          DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: Build & Push image
-        env:
-          DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/build-push-action@v5
         with:
           context: .
