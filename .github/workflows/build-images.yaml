@@ -7,6 +7,13 @@ name: build-docker-image
 "on":
   push:
 
+env:
+  # The namespace is public, it is not a secret: putting it in `secrets` only
+  # masked it in the logs, which made an invalid reference impossible to
+  # diagnose. The secrets below are still used, for the login only.
+  # Moving to another registry (phase 4) is a change to this single line.
+  IMAGE_NAMESPACE: pnb990
+
 jobs:
   # prepare:
   #   runs-on: STM32
@@ -146,18 +153,7 @@ jobs:
           variant="${{ matrix.variant }}"
           commit="${{ steps.file_commit.outputs.file_commit }}"
 
-          # The secret is interpolated into this script as-is: a trailing
-          # newline, a space or an uppercase letter in it produces an invalid
-          # docker reference, and the log masks the value so the error is
-          # unreadable. Normalise it here.
-          owner=$(printf '%s' '${{ secrets.DOCKER_HUB_USERNAME }}' \
-              | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
-          repo="$owner/$name"
-
-          if [ -z "$owner" ]; then
-            echo "DOCKER_HUB_USERNAME is empty, cannot build a tag." >&2
-            exit 1
-          fi
+          repo="$IMAGE_NAMESPACE/$name"
 
           # A docker tag cannot contain a slash, and branch names do:
           # `tmp/review_image_building` would give the invalid tag
@@ -175,13 +171,10 @@ jobs:
             echo "EOF"
           } >> "$FORGEJO_OUTPUT"
 
-          # Same list with the owner replaced, so a malformed reference stays
-          # visible even though the secret is masked in the log.
-          echo "owner: ${#owner} chars"
           echo "tags:"
-          echo "  <owner>/$name:${variant}"
-          echo "  <owner>/$name:${variant}-$branch"
-          echo "  <owner>/$name:${variant}-$commit"
+          echo "  $repo:${variant}"
+          echo "  $repo:${variant}-$branch"
+          echo "  $repo:${variant}-$commit"
 
       - name: Login to Docker Hubs
         uses: docker/login-action@v3
@@ -201,8 +194,8 @@ jobs:
           # makes buildkit reuse the very same blob, so the variants share
           # their common prefix through this cache, one entry per image name.
           cache-from: >-
-            type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{
+            type=registry,ref=${{ env.IMAGE_NAMESPACE }}/${{
             matrix.name }}:buildcache
           cache-to: >-
-            type=registry,mode=max,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{
+            type=registry,mode=max,ref=${{ env.IMAGE_NAMESPACE }}/${{
             matrix.name }}:buildcache
