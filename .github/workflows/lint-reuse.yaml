@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+---
+
+"on":
+  push:
+
+jobs:
+  lint-reuse:
+    # TODO: once the python3 images are republished, run this in
+    # `container: image: <registry>/python3:ci-<commit>` and drop the two
+    # install steps below.
+    runs-on: debian
+    steps:
+      # The `debian` label starts the job in a bare container: node is needed
+      # by the JavaScript actions, git by the checkout, file by python-magic
+      # which reuse depends on.
+      - name: Install dep
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+              ca-certificates curl wget nodejs git file
+
+      - name: Checkout the repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      # Download, run, then check: piping the installer into sh hides a failed
+      # download, and the job then fails much later on a confusing error.
+      - name: Install uv
+        run: |
+          set -e
+          if ! command -v uv > /dev/null; then
+            wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh
+            env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+                sh /tmp/uv-install.sh
+            rm /tmp/uv-install.sh
+          fi
+          uv --version
+
+      - name: Install dependencies
+        run: uv sync --dev --frozen
+
+      - name: Check REUSE compliance
+        run: uv run reuse lint

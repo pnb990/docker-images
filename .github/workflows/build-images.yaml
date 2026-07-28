@@ -54,7 +54,7 @@ jobs:
   #         fi
 
 
-  build:
+  build-images:
     runs-on: host
 
     # needs:
