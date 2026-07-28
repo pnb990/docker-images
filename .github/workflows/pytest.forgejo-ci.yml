@@ -8,16 +8,43 @@
 
 jobs:
   pytest:
+    # TODO: once the python3 images are republished, run this in
+    # `container: image: <registry>/python3:ci-<commit>` and drop the uv
+    # install step below.
     runs-on: PIPENV
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Install pipenv
-        run: apt-get update && apt-get install -y pipenv
+      - name: Install uv
+        run: |
+          set -e
+          apt-get update
+          apt-get install -y --no-install-recommends wget ca-certificates
+          wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh
+          env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+              sh /tmp/uv-install.sh
+          rm /tmp/uv-install.sh
+          uv --version
 
       - name: Install dependencies
-        run: pipenv install --deploy --dev
+        run: uv sync --frozen
 
       - name: Run CI tests
-        run: pipenv run python ./tools/test_ci.py
+        run: uv run python ./tools/test_ci.py
+
+      # The Dockerfiles under images/ are generated, but the build workflow
+      # consumes them directly. Without this check, a hand edit of a generated
+      # file or a template change that was never regenerated goes unnoticed
+      # and gets published.
+      - name: Check images/ matches the templates
+        run: |
+          set -e
+          uv run python3 ./src/main.py
+          if [ -n "$(git status --porcelain images/)" ]; then
+            echo "images/ is out of date."
+            echo "Run: uv run python3 ./src/main.py, then commit images/."
+            git status --porcelain images/
+            git --no-pager diff -- images/
+            exit 1
+          fi

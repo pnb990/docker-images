@@ -3,5 +3,28 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+[project]
+name = "docker-images"
+version = "0.1.0"
+description = "Generator of the Dockerfiles published to the image registry"
+requires-python = ">=3.11"
+dependencies = [
+    "colorlog",
+    "jinja2",
+    "pyyaml",
+]
+
+[dependency-groups]
+dev = [
+    "black",
+    "pycodestyle",
+    "pylint",
+    "reuse",
+]
+
+[tool.uv]
+# Scripts live in src/ and are run directly, there is nothing to install.
+package = false
+
 [tool.black]
 line-length = 79

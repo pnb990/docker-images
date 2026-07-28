@@ -61,10 +61,27 @@ jobs:
     #   - prepare
 
     strategy:
+      # Sequential on purpose: `base` populates the build cache that `ci` and
+      # `dev` then reuse, which is what keeps the 1.2 GB toolchain layer
+      # shared between the three variants instead of pushed three times.
+      max-parallel: 1
+
       matrix:
-        # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
-        name: ["fw-arm-none-eabi-13.2.rel1", "python3"]
-        variant: [base, ci]
+        # Explicit pairs, not a cross product: python3 has no `dev` variant.
+        # The pairs are the `name`/`variant` fields of images/images_list.json;
+        # keep them in sync (a dynamic matrix needs a `prepare` job, see the
+        # commented block above).
+        include:
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: base
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: ci
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: dev
+          - name: "python3"
+            variant: base
+          - name: "python3"
+            variant: ci
 
     steps:
       - name: Debug matrix
@@ -145,3 +162,13 @@ jobs:
           file: ${{ steps.file_commit.outputs.dockerfile }}
           push: true
           tags: ${{ steps.img.outputs.tags }}
+          # Identical instructions do not produce identical layers: a rebuilt
+          # layer gets a fresh digest and is stored again. Only a cache hit
+          # makes buildkit reuse the very same blob, so the variants share
+          # their common prefix through this cache, one entry per image name.
+          cache-from: >-
+            type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{
+            matrix.name }}:buildcache
+          cache-to: >-
+            type=registry,mode=max,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{
+            matrix.name }}:buildcache

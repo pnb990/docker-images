@@ -42,6 +42,9 @@ class TestCodeFormat(unittest.TestCase):
 
     EXCLUDE_DIRS = [
         TOP_DIR / "lib_ext",
+        # uv keeps its virtualenv inside the project, do not lint the
+        # dependencies.
+        TOP_DIR / ".venv",
     ]
 
     def setUp(self):

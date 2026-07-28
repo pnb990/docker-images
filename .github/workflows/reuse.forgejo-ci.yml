@@ -7,17 +7,28 @@
   push:
 
 jobs:
-  pytest:
+  reuse:
+    # TODO: once the python3 images are republished, run this in
+    # `container: image: <registry>/python3:ci-<commit>` and drop the uv
+    # install step below.
     runs-on: PIPENV
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Install pipenv
-        run: apt-get update && apt-get install -y pipenv
+      - name: Install uv
+        run: |
+          set -e
+          apt-get update
+          apt-get install -y --no-install-recommends wget ca-certificates
+          wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh
+          env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+              sh /tmp/uv-install.sh
+          rm /tmp/uv-install.sh
+          uv --version
 
       - name: Install dependencies
-        run: pipenv install --deploy --dev
+        run: uv sync --frozen
 
       - name: Check REUSE compliance
-        run: pipenv run reuse lint
+        run: uv run reuse lint

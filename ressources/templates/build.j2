@@ -1,0 +1,20 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: build
+# -------------------------------------------------------------------
+# make, cmake and ninja are carried by every firmware variant, including the
+# ones that do not use them: a few tens of MB against the 1.2 GB toolchain,
+# not worth a separate variant.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        ninja-build \
+        git \
+        wget \
+        bzip2 \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*

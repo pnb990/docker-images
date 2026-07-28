@@ -1,0 +1,14 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: python
+# -------------------------------------------------------------------
+# The system interpreter, for scripts that expect /usr/bin/python3. Project
+# environments are uv's job, hence no pip and no pipenv here.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*

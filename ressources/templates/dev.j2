@@ -1,0 +1,39 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: dev
+# -------------------------------------------------------------------
+# Ends on USER dev, so nothing can be stacked after it except a feature that
+# switches back to root itself, the way `jlink` does. A CI variant built on
+# top of this one would run as a non-root user and its apt-get would fail.
+ARG USERNAME=dev
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        sudo \
+        udev \
+        ssh \
+        curl \
+        bear \
+        bash-completion \
+        openocd \
+        gdb-multiarch \
+        iproute2 \
+        usbutils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m ${USERNAME} \
+    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" \
+        > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME} \
+    && usermod -a -G dialout,plugdev ${USERNAME} \
+    && mkdir -p /home/${USERNAME}/project
+
+LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
+    description="Devcontainer image, interactive development and debugging"
+
+USER ${USERNAME}
+ENV SHELL=/bin/bash
+CMD ["/bin/bash"]

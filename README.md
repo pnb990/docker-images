@@ -7,70 +7,105 @@ SPDX-License-Identifier: BSD-3-Clause
 Docker Images Repository
 ========================
 
-**Overview**
-- **Purpose:** This repository generates and builds Docker images from templates and Dockerfile generators. The generator writes Dockerfiles into the `images/` directory and the CI workflow builds and pushes them.
+Central build of the container images shared by the firmware and python
+projects. A generator turns a declarative configuration into Dockerfiles, and
+a CI workflow builds them and pushes them to the registry.
 
-**Prerequisites**
-- **OS:** Tested on Debian/Ubuntu-like systems.
-- **Tools:** `python3`, `pipenv`, `jq`, `git`, and `docker` (for building/pushing).
-- **Install minimal deps (Debian/Ubuntu):**
-```bash
-sudo apt-get update
-sudo apt-get install -y python3 python3-venv pipenv jq git docker-cli
+Layout
+------
+
+| Path | Role |
+|---|---|
+| `config/default/config.yaml` | what to build: features, images, variants |
+| `ressources/templates/*.j2` | one file per feature, plus the skeleton |
+| `src/main.py` | generator |
+| `images/*.Dockerfile` | **generated**, committed, consumed by the CI |
+| `.github/workflows/` | build and push, tests, REUSE lint |
+
+Model: features, images, variants
+---------------------------------
+
+A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
+`python`, `uv`, `arm-13.2.rel1`, `ci-runtime`, `dev`, `jlink`). It installs
+what it needs itself, so it can be reused by any image.
+
+An **image** picks a base image, and each of its **variants** lists the
+features to stack, in order:
+
+```yaml
+images:
+  fw-arm-none-eabi-13.2.rel1:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, build, python, uv, arm-13.2.rel1]
+      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
+      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
 ```
 
-**Regenerate the Dockerfiles**
-- **What it does:** Runs the repository's generator script which writes Dockerfiles to `images/`.
-- **Command (local):**
+The order matters twice:
+
+- it is the order of the layers, so reordering a feature invalidates every
+  layer after it and forces a full rebuild and re-push;
+- read vertically, `base` is a prefix of `ci`, which is a prefix of `dev`.
+  That common prefix is what lets the variants share the expensive layers,
+  starting with the 1.2 GB ARM toolchain. The sharing itself comes from the
+  build cache declared in the build workflow (`cache-from` / `cache-to`):
+  identical instructions alone do not produce identical layers.
+
+Which variant to consume:
+
+| Variant | For |
+|---|---|
+| `base` | build only, no CI plumbing |
+| `ci` | jobs running under the Forgejo runner (node, git, ssh) |
+| `dev` | devcontainers: probes, debuggers, non-root `dev` user |
+| `dev-jlink` | `dev` plus JLink, **built locally, never pushed** |
+
+`dev` ends on `USER dev`. Only a feature that switches back to root itself can
+be stacked on top of it, which is exactly what `jlink` does, and why it is the
+last one.
+
+SEGGER restricts the redistribution of the JLink `.deb`, so `jlink` is kept
+out of `dev` and the `dev-jlink` variant is deliberately absent from the push
+matrix. Build it locally:
+
 ```bash
-pipenv install --deploy
-pipenv run python3 ./src/main.py
-```
-- After this the `images/` directory contains `*.Dockerfile` files created by the generator.
-
-**Add a new Dockerfile**
-- **Manual:** create a file named `images/<your-name>.Dockerfile`, commit and push. The CI will pick it up.
-- **Via template/generator:**
-  - Add a template under `ressources/templates/` (there are existing templates to copy from).
-  - Update the generator (`src/main.py`) to include the new template or generation rule.
-  - Run the generator locally to create the Dockerfile, verify, then commit the generated file and generator changes.
-
-**CI workflow & outputs**
-- The CI workflow file is at [.forgejo/workflows/build.yaml](.forgejo/workflows/build.yaml).
-- One step collects the list of Dockerfiles and writes an output block into the runner outputs file using the runner variable `FORGEJO_OUTPUT`.
-- Important: the name used when emitting the output must match the job output key used later. For example, if the job sets
-
-- Job outputs (prepare job) use `dockerfiles:` in the workflow header. Ensure the step emits `dockerfiles<<EOF` rather than `files<<EOF`.
-
-Example corrected snippet (inside the step that lists Dockerfiles):
-```bash
-files=$(printf '"%s"\n' images/*.Dockerfile | jq -R . | jq -s .)
-{
-  echo "dockerfiles<<EOF"
-  echo "$files"
-  echo "EOF"
-} >> "$FORGEJO_OUTPUT"
-```
-
-**Notes & troubleshooting**
-- If the glob `images/*.Dockerfile` matches nothing the shell might pass the literal pattern. To be robust use `find` or enable `nullglob`.
-  Example robust command:
-```bash
-files=$(find images -name '*.Dockerfile' -print0 | xargs -0 -r printf '"%s"\n' | jq -R . | jq -s .)
-```
-- If CI still reports an empty matrix, verify the output name (see previous section) and that the `images/` files exist and are committed before the listing step runs.
-
-**Run a single image build locally (quick test)**
-```bash
-docker build -f images/example.Dockerfile -t local/example:latest .
+docker build -f images/fw-arm-none-eabi-13.2.rel1.dev-jlink.Dockerfile \
+    -t local/fw-arm:dev-jlink .
 ```
 
-**Contributing**
-- Update `src/main.py` when changing generation logic.
-- Add or update templates under `ressources/templates/`.
+Local usage
+-----------
 
-**Useful files**
-- Generator script: [src/main.py](src/main.py)
-- CI workflow: [.forgejo/workflows/build.yaml](.forgejo/workflows/build.yaml)
+Requires `uv`, `git` and `docker`.
 
-Thank you — if you want, I can also update the workflow to emit `dockerfiles` instead of `files` to match the job output key.
+```bash
+uv sync                          # create the environment from uv.lock
+uv run python3 ./src/main.py     # regenerate images/
+docker build -f images/python3.ci.Dockerfile -t local/python3:ci .
+```
+
+`images/` is generated but committed, because the build workflow reads it
+directly. Never edit a file in there by hand: regenerate and commit the
+result. The `pytest` workflow fails if `images/` does not match the templates.
+
+Adding a feature or a variant
+-----------------------------
+
+1. Write `ressources/templates/<feature>.j2`, with its SPDX header inside a
+   `{# ... #}` comment, and make it install its own dependencies.
+2. Declare it under `features:` in `config/default/config.yaml`, then add it
+   to the variants that need it, keeping the common prefix first.
+3. If you add a variant, add the matching `name`/`variant` pair to the matrix
+   of `.github/workflows/docker-build-and-push.yaml`.
+4. `uv run python3 ./src/main.py`, check the diff under `images/`, commit both
+   the template and the generated files.
+
+Published tags
+--------------
+
+Each build pushes `<variant>`, `<variant>-<branch>`,
+`<variant>-<commit of the Dockerfile>`, and `<variant>-latest` when the
+Dockerfile has not changed since. Consumers should reference the commit tag:
+bumping an image then becomes a reviewable commit in the project, and a
+rollback is a `git revert`.
