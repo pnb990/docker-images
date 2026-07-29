@@ -63,6 +63,8 @@ RUN wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh \
 # the projects need to build. The runner runs the JavaScript actions
 # (actions/checkout and friends) with the node of the container, and clones
 # over ssh, hence node, git and openssh-client.
+# `file` is there for libmagic: reuse depends on it, and a REUSE lint is a CI
+# job like any other.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         nodejs \
         npm \
@@ -70,4 +72,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         openssh-client \
         curl \
         ca-certificates \
+        file \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
