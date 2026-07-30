@@ -162,8 +162,14 @@ CMD ["/bin/bash"]
 # can read a file, it cannot read the labels of its own image. This is what
 # makes a floating tag traceable -- the log of a green run says exactly which
 # commit to pin when that build has to be rolled back to.
+#
+# `dev` hands over a non-root image, and /etc is only writable by root, so
+# switch back for this layer and hand the image back the way `dev` left it.
+# `jlink` returns to the user `dev` created, so testing `dev` covers it too.
+USER root
 ARG IMAGE_COMMIT=unknown
 LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
 RUN printf 'image=%s\nvariant=%s\ncommit=%s\n' \
         'fw-arm-none-eabi-13.2.rel1' 'dev' "$IMAGE_COMMIT" \
         > /etc/pnb-image
+USER ${USERNAME}
