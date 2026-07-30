@@ -18,11 +18,13 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
-from config import Config
+from config import Config, ConfigError
 from libs_path import add_libs_dir
 from logging_config import configure_log
 
 log = logging.getLogger(__name__)
+
+TEMPLATES_DIR = "ressources/templates"
 
 
 def readable_file(prospective_file):
@@ -61,6 +63,28 @@ def output_dir(prospective_dir):
     return prospective_dir
 
 
+def render_variant(env, config, spec):
+    """
+    Render one Dockerfile: the skeleton, then the features in order
+    Args:
+        env (Environment): jinja environment
+        config (Config): configuration object
+        spec (dict): image_name, variant, base_image and ordered features
+    Returns:
+        str: content of the Dockerfile
+    """
+    body = "\n".join(
+        env.get_template(config.features[feature]).render()
+        for feature in spec["features"]
+    )
+
+    content = env.get_template("dockerfile.j2").render(
+        body=body.rstrip("\n"), **spec
+    )
+
+    return content.rstrip("\n") + "\n"
+
+
 def build_images(config, outdir):
     """
     build images from configuration
@@ -68,28 +92,57 @@ def build_images(config, outdir):
         config (Config): configuration object
         outdir (Path): output directory
     """
-    env = Environment(loader=FileSystemLoader("ressources/templates"))
+    env = Environment(
+        loader=FileSystemLoader(TEMPLATES_DIR),
+        trim_blocks=True,
+        keep_trailing_newline=True,
+    )
+
+    # A variant that disappears from the configuration must disappear from
+    # images/ too, otherwise the build workflow keeps publishing it.
+    for stale in outdir.glob("*.Dockerfile"):
+        stale.unlink()
 
     images_list = []
 
     for i_name, image in config.images.items():
-        try:
-            for v_name, variant in config.variants.items():
-                template = env.get_template(image.template)
-
-                dev_rendered = template.render(
-                    parent=str(variant.parent), base_image=str(variant.image)
+        for v_name, features in image.variants.items():
+            spec = {
+                "image_name": i_name,
+                "variant": v_name,
+                "base_image": image["from"],
+                "features": list(features),
+            }
+            try:
+                content = render_variant(env, config, spec)
+            except TemplateNotFound as error:
+                log.error(
+                    "Template not found for image:%s variant:%s error:%s",
+                    i_name,
+                    v_name,
+                    error,
                 )
+                sys.exit(1)
+            except ConfigError as error:
+                log.error(
+                    "Unknown feature in image:%s variant:%s error:%s",
+                    i_name,
+                    v_name,
+                    error,
+                )
+                sys.exit(1)
 
-                file_path = outdir / f"{i_name}.{v_name}.Dockerfile"
-                file_path.write_text(dev_rendered)
-                log.info("Generated image:%s variant %s", i_name, v_name)
-                images_list.append(f"{i_name}.{v_name}.Dockerfile")
-        except TemplateNotFound as error:
-            log.error(
-                "Template not found for image:%s error:%s", i_name, error
+            file_name = f"{i_name}.{v_name}.Dockerfile"
+            (outdir / file_name).write_text(content, encoding="utf-8")
+            log.info(
+                "Generated image:%s variant:%s features:%s",
+                i_name,
+                v_name,
+                " -> ".join(spec["features"]),
             )
-            sys.exit(1)
+            images_list.append(
+                {"name": i_name, "variant": v_name, "file": file_name}
+            )
 
     with open(
         outdir / "images_list.json", "w", encoding="utf-8"

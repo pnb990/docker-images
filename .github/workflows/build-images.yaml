@@ -7,6 +7,13 @@ name: build-docker-image
 "on":
   push:
 
+env:
+  # The namespace is public, it is not a secret: putting it in `secrets` only
+  # masked it in the logs, which made an invalid reference impossible to
+  # diagnose. The secrets below are still used, for the login only.
+  # Moving to another registry (phase 4) is a change to this single line.
+  IMAGE_NAMESPACE: pnb990
+
 jobs:
   # prepare:
   #   runs-on: STM32
@@ -54,17 +61,34 @@ jobs:
   #         fi
 
 
-  build:
+  build-images:
     runs-on: host
 
     # needs:
     #   - prepare
 
     strategy:
+      # Sequential on purpose: `base` populates the build cache that `ci` and
+      # `dev` then reuse, which is what keeps the 1.2 GB toolchain layer
+      # shared between the three variants instead of pushed three times.
+      max-parallel: 1
+
       matrix:
-        # file: ${{ fromJSON(needs.prepare.outputs.dockerfiles) }} not working
-        name: ["fw-arm-none-eabi-13.2.rel1", "python3"]
-        variant: [base, ci]
+        # Explicit pairs, not a cross product: python3 has no `dev` variant.
+        # The pairs are the `name`/`variant` fields of images/images_list.json;
+        # keep them in sync (a dynamic matrix needs a `prepare` job, see the
+        # commented block above).
+        include:
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: base
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: ci
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: dev
+          - name: "python3"
+            variant: base
+          - name: "python3"
+            variant: ci
 
     steps:
       - name: Debug matrix
@@ -72,11 +96,26 @@ jobs:
           echo "matrix.name=${{ matrix.name }}"
           echo "matrix.variant=${{ matrix.variant }}"
 
+      # buildx keeps its builder state in $DOCKER_CONFIG/buildx, and the login
+      # writes its credentials there. Every step must see the same directory:
+      # when only the login and build steps had it, `Setup Docker Buildx`
+      # wrote to ~/.docker, the build step found no builder and fell back to
+      # the `docker` driver, which cannot export a cache.
+      #
+      # Exported here rather than in the job `env:` because the `runner`
+      # context is not available at that level.
+      - name: Setup docker config dir
+        run: echo "DOCKER_CONFIG=${RUNNER_TEMP:-/tmp}/docker" >> "$FORGEJO_ENV"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # docker-container, not the default `docker` driver: exporting a
+      # registry cache is only supported by the former.
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       - name: Get commit hash for Dockerfile
         id: file_commit
@@ -108,40 +147,55 @@ jobs:
       - name: Set image tags
         id: img
         run: |
-          variant="${{ matrix.variant }}"
-          branch_head=$(git rev-parse HEAD)
-          repo="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.name }}"
-          commit="${{ steps.file_commit.outputs.file_commit }}"
-          latest=''
+          set -e
 
-          if [ ${{ steps.file_commit.outputs.is_latest }} = 'true' ]; then
-              latest="$repo:${variant}-latest"
-          fi
+          name="${{ matrix.name }}"
+          variant="${{ matrix.variant }}"
+          commit="${{ steps.file_commit.outputs.file_commit }}"
+
+          repo="$IMAGE_NAMESPACE/$name"
+
+          # A docker tag cannot contain a slash, and branch names do:
+          # `tmp/review_image_building` would give the invalid tag
+          # `base-tmp/review_image_building`.
+          branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
 
           {
             echo "tags<<EOF"
             echo "$repo:${variant}"
-            echo "$repo:${variant}-$FORGEJO_REF_NAME"
+            echo "$repo:${variant}-$branch"
             echo "$repo:${variant}-$commit"
-            echo "$latest"
+            if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
+              echo "$repo:${variant}-latest"
+            fi
             echo "EOF"
-          } >> $FORGEJO_OUTPUT
-          cat "$FORGEJO_OUTPUT"
+          } >> "$FORGEJO_OUTPUT"
+
+          echo "tags:"
+          echo "  $repo:${variant}"
+          echo "  $repo:${variant}-$branch"
+          echo "  $repo:${variant}-$commit"
 
       - name: Login to Docker Hubs
-        env:
-          DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: Build & Push image
-        env:
-          DOCKER_CONFIG: ${{ runner.temp }}/docker
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ${{ steps.file_commit.outputs.dockerfile }}
           push: true
           tags: ${{ steps.img.outputs.tags }}
+          # Identical instructions do not produce identical layers: a rebuilt
+          # layer gets a fresh digest and is stored again. Only a cache hit
+          # makes buildkit reuse the very same blob, so the variants share
+          # their common prefix through this cache, one entry per image name.
+          cache-from: >-
+            type=registry,ref=${{ env.IMAGE_NAMESPACE }}/${{
+            matrix.name }}:buildcache
+          cache-to: >-
+            type=registry,mode=max,ref=${{ env.IMAGE_NAMESPACE }}/${{
+            matrix.name }}:buildcache

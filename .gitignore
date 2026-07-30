@@ -9,4 +9,5 @@ __PYCACHE__/
 .DS_Store
 .env
 out/
+.venv/
 

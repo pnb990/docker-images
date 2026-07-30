@@ -6,8 +6,8 @@
 # Do not edit by hand: edit ressources/templates/ and regenerate.
 #
 # image    : fw-arm-none-eabi-13.2.rel1
-# variant  : base
-# features : locale -> build -> python -> uv -> arm-13.2.rel1
+# variant  : dev-jlink
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> jlink
 
 FROM debian:trixie-slim
 
@@ -96,3 +96,87 @@ RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && rm -rf /tmp/arm-toolchain
 
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}
+
+# -------------------------------------------------------------------
+# feature: ci-runtime
+# -------------------------------------------------------------------
+# What the Forgejo runner needs to execute a job inside this image, not what
+# the projects need to build. The runner runs the JavaScript actions
+# (actions/checkout and friends) with the node of the container, and clones
+# over ssh, hence node, git and openssh-client.
+# `file` is there for libmagic: reuse depends on it, and a REUSE lint is a CI
+# job like any other.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nodejs \
+        npm \
+        git \
+        openssh-client \
+        curl \
+        ca-certificates \
+        file \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# feature: dev
+# -------------------------------------------------------------------
+# Ends on USER dev, so nothing can be stacked after it except a feature that
+# switches back to root itself, the way `jlink` does. A CI variant built on
+# top of this one would run as a non-root user and its apt-get would fail.
+ARG USERNAME=dev
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        sudo \
+        udev \
+        ssh \
+        curl \
+        bear \
+        bash-completion \
+        openocd \
+        gdb-multiarch \
+        iproute2 \
+        usbutils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m ${USERNAME} \
+    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" \
+        > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME} \
+    && usermod -a -G dialout,plugdev ${USERNAME} \
+    && mkdir -p /home/${USERNAME}/project
+
+LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
+    description="Devcontainer image, interactive development and debugging"
+
+USER ${USERNAME}
+ENV SHELL=/bin/bash
+CMD ["/bin/bash"]
+
+# -------------------------------------------------------------------
+# feature: jlink
+# -------------------------------------------------------------------
+# Kept out of `dev` and stacked after it, because SEGGER restricts the
+# redistribution of this .deb: a variant carrying this feature must not be
+# pushed to a public registry.
+#
+# `dev` hands over a non-root image, so switch back to root for the install
+# and hand it back at the end. Stack this feature right after `dev`, nothing
+# else creates the user it returns to.
+ARG USERNAME=dev
+USER root
+
+# The postinst is removed because it only sets up udev rules and prompts,
+# which cannot run during a build.
+ARG JLINK_LINK="https://www.segger.com/downloads/jlink/JLink_Linux_V856_x86_64.deb"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && curl -L ${JLINK_LINK} \
+        -d "accept_license_agreement=accepted" \
+        -o /tmp/jlink.deb \
+    && dpkg --unpack /tmp/jlink.deb \
+    && rm /tmp/jlink.deb \
+    && rm -f /var/lib/dpkg/info/jlink.postinst \
+    && apt-get install -y --no-install-recommends --fix-broken \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER ${USERNAME}

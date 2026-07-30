@@ -6,16 +6,38 @@
 logs:
   level: "DEBUG"
 
-variants:
-  base:
-    parent: base.j2
-    image: "debian:trixie-slim"
-  ci:
-    parent: forgejo.j2
-    image: "debian:trixie-slim"
+# A feature is one snippet of Dockerfile, self-contained: it installs what it
+# needs itself, so that it can be used by any image.
+features:
+  locale: "locale.j2"
+  build: "build.j2"
+  python: "python.j2"
+  uv: "uv.j2"
+  arm-13.2.rel1: "arm-none-eabi.j2"
+  ci-runtime: "ci-runtime.j2"
+  dev: "dev.j2"
+  jlink: "jlink.j2"
 
+# An image is a base image plus, per variant, an ordered list of features.
+#
+# The order is the layer order, and it is what lets the variants of one image
+# share their layers: read the lists below vertically, `base` is a prefix of
+# `ci`, which is a prefix of `dev`. Reordering a feature invalidates every
+# layer after it and forces a full rebuild and re-push.
 images:
   fw-arm-none-eabi-13.2.rel1:
-    template: "fw-arm-none-eabi-13.2.rel1.j2"
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, build, python, uv, arm-13.2.rel1]
+      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
+      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
+      # Local build only: SEGGER restricts the redistribution of the JLink
+      # .deb, so this variant is deliberately absent from the push matrix of
+      # .github/workflows/docker-build-and-push.yaml.
+      dev-jlink:
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, jlink]
   python3:
-    template: "python3.j2"
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, python, uv]
+      ci: [locale, python, uv, ci-runtime]

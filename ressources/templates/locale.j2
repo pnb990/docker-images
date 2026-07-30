@@ -1,0 +1,22 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: locale
+# -------------------------------------------------------------------
+# Kept first in every variant of every image: it is the layer all the images
+# share, so it must be identical everywhere.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        locales \
+    && sed -i \
+        -e '/en_US.UTF-8/s/^# //g' \
+        -e '/fr_FR.UTF-8/s/^# //g' \
+        /etc/locale.gen \
+    && locale-gen \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8

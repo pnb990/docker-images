@@ -1,6 +1,32 @@
 [
-    "fw-arm-none-eabi-13.2.rel1.base.Dockerfile",
-    "fw-arm-none-eabi-13.2.rel1.ci.Dockerfile",
-    "python3.base.Dockerfile",
-    "python3.ci.Dockerfile"
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "base",
+        "file": "fw-arm-none-eabi-13.2.rel1.base.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "ci",
+        "file": "fw-arm-none-eabi-13.2.rel1.ci.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "dev",
+        "file": "fw-arm-none-eabi-13.2.rel1.dev.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "dev-jlink",
+        "file": "fw-arm-none-eabi-13.2.rel1.dev-jlink.Dockerfile"
+    },
+    {
+        "name": "python3",
+        "variant": "base",
+        "file": "python3.base.Dockerfile"
+    },
+    {
+        "name": "python3",
+        "variant": "ci",
+        "file": "python3.ci.Dockerfile"
+    }
 ]

@@ -11,6 +11,7 @@ Configuration library
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -136,7 +137,9 @@ class ConfigNode:
         except ConfigError:
             return default
 
-    def __getattr__(self, name):
+    # The shape comes from the YAML file, so nothing more precise than Any
+    # can be promised to a type checker here.
+    def __getattr__(self, name) -> Any:
         """Give configuration of name"""
         try:
             if name in self._data:
@@ -163,7 +166,7 @@ class ConfigNode:
             ) from error
         return val
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Any:
         """Get configuration item of key"""
         return self.__getattr__(key)
 

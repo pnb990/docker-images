@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+---
+
+"on":
+  push:
+
+jobs:
+  test-python:
+    # TODO: once the python3 images are republished, run this in
+    # `container: image: <registry>/python3:ci-<commit>` and drop the two
+    # install steps below.
+    runs-on: debian
+    steps:
+      # The `debian` label starts the job in a bare container: node is needed
+      # by the JavaScript actions, git by the checkout.
+      - name: Install dep
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+              ca-certificates curl wget nodejs git
+
+      - name: Checkout the repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      # Download, run, then check: piping the installer into sh hides a failed
+      # download, and the job then fails much later on a confusing error.
+      - name: Install uv
+        run: |
+          set -e
+          if ! command -v uv > /dev/null; then
+            wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh
+            env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+                sh /tmp/uv-install.sh
+            rm /tmp/uv-install.sh
+          fi
+          uv --version
+
+      - name: Install dependencies
+        run: uv sync --dev --frozen
+
+      - name: Run CI tests
+        run: uv run python ./tests/test.py
+
+      # The Dockerfiles under images/ are generated, but the build workflow
+      # consumes them directly. Without this check, a hand edit of a generated
+      # file or a template change that was never regenerated goes unnoticed
+      # and gets published.
+      - name: Check images/ matches the templates
+        run: |
+          set -e
+          uv run python3 ./src/main.py
+          if [ -n "$(git status --porcelain images/)" ]; then
+            echo "images/ is out of date."
+            echo "Run: uv run python3 ./src/main.py, then commit images/."
+            git status --porcelain images/
+            git --no-pager diff -- images/
+            exit 1
+          fi

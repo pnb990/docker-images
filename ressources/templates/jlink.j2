@@ -1,0 +1,34 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: jlink
+# -------------------------------------------------------------------
+# Kept out of `dev` and stacked after it, because SEGGER restricts the
+# redistribution of this .deb: a variant carrying this feature must not be
+# pushed to a public registry.
+#
+# `dev` hands over a non-root image, so switch back to root for the install
+# and hand it back at the end. Stack this feature right after `dev`, nothing
+# else creates the user it returns to.
+ARG USERNAME=dev
+USER root
+
+# The postinst is removed because it only sets up udev rules and prompts,
+# which cannot run during a build.
+ARG JLINK_LINK="https://www.segger.com/downloads/jlink/JLink_Linux_V856_x86_64.deb"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && curl -L ${JLINK_LINK} \
+        -d "accept_license_agreement=accepted" \
+        -o /tmp/jlink.deb \
+    && dpkg --unpack /tmp/jlink.deb \
+    && rm /tmp/jlink.deb \
+    && rm -f /var/lib/dpkg/info/jlink.postinst \
+    && apt-get install -y --no-install-recommends --fix-broken \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER ${USERNAME}

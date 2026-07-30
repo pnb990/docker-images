@@ -6,8 +6,8 @@
 # Do not edit by hand: edit ressources/templates/ and regenerate.
 #
 # image    : fw-arm-none-eabi-13.2.rel1
-# variant  : base
-# features : locale -> build -> python -> uv -> arm-13.2.rel1
+# variant  : dev
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev
 
 FROM debian:trixie-slim
 
@@ -96,3 +96,57 @@ RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && rm -rf /tmp/arm-toolchain
 
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}
+
+# -------------------------------------------------------------------
+# feature: ci-runtime
+# -------------------------------------------------------------------
+# What the Forgejo runner needs to execute a job inside this image, not what
+# the projects need to build. The runner runs the JavaScript actions
+# (actions/checkout and friends) with the node of the container, and clones
+# over ssh, hence node, git and openssh-client.
+# `file` is there for libmagic: reuse depends on it, and a REUSE lint is a CI
+# job like any other.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nodejs \
+        npm \
+        git \
+        openssh-client \
+        curl \
+        ca-certificates \
+        file \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# feature: dev
+# -------------------------------------------------------------------
+# Ends on USER dev, so nothing can be stacked after it except a feature that
+# switches back to root itself, the way `jlink` does. A CI variant built on
+# top of this one would run as a non-root user and its apt-get would fail.
+ARG USERNAME=dev
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        sudo \
+        udev \
+        ssh \
+        curl \
+        bear \
+        bash-completion \
+        openocd \
+        gdb-multiarch \
+        iproute2 \
+        usbutils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m ${USERNAME} \
+    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" \
+        > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME} \
+    && usermod -a -G dialout,plugdev ${USERNAME} \
+    && mkdir -p /home/${USERNAME}/project
+
+LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
+    description="Devcontainer image, interactive development and debugging"
+
+USER ${USERNAME}
+ENV SHELL=/bin/bash
+CMD ["/bin/bash"]

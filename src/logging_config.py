@@ -53,12 +53,15 @@ except ImportError as error:
     print(MSG)
 
 
-def configure_log(level: int | None = logging.INFO) -> None:
+def configure_log(level: int | str | None = logging.INFO) -> None:
     """
     Configure logging, color format
     parameters:
-    - level : logging level or verbosity count
+    - level : logging level name, or verbosity count when given as an int
     """
+
+    if level is None:
+        return
 
     if isinstance(level, int):
         lvls = [logging.ERROR, logging.INFO, logging.DEBUG]
