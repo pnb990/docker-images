@@ -91,6 +91,8 @@ jobs:
             variant: ci
           - name: "fw-arm-none-eabi-13.2.rel1"
             variant: dev
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: doc
           - name: "python3"
             variant: base
           - name: "python3"

@@ -16,6 +16,11 @@
     },
     {
         "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "doc",
+        "file": "fw-arm-none-eabi-13.2.rel1.doc.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
         "variant": "dev-jlink",
         "file": "fw-arm-none-eabi-13.2.rel1.dev-jlink.Dockerfile"
     },
