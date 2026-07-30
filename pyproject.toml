@@ -19,6 +19,7 @@ dev = [
     "black",
     "pycodestyle",
     "pylint",
+    "pyright",
     "reuse",
 ]
 

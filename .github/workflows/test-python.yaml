@@ -43,7 +43,7 @@ jobs:
         run: uv sync --dev --frozen
 
       - name: Run CI tests
-        run: uv run python ./tools/test_ci.py
+        run: uv run python ./tests/test.py
 
       # The Dockerfiles under images/ are generated, but the build workflow
       # consumes them directly. Without this check, a hand edit of a generated
