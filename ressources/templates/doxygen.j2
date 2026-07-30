@@ -1,0 +1,22 @@
+{#
+    SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: doxygen
+# -------------------------------------------------------------------
+# API documentation of the sources. graphviz comes with it because the
+# doxyfiles of the projects set HAVE_DOT=YES, which fails without `dot`.
+#
+# 357 MB uncompressed on trixie, 293 MB of which is doxygen alone: the Debian
+# package depends on libclang, for CLANG_ASSISTED_PARSING. That is why this
+# feature is confined to the `doc` variant instead of sitting in `base`,
+# where every firmware build would pull it for nothing.
+#
+# The LaTeX backend is left out on purpose: texlive weighs more than the
+# whole rest of the image, and the projects generate HTML (GENERATE_LATEX=NO).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        doxygen \
+        graphviz \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
