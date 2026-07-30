@@ -26,8 +26,8 @@ Model: features, images, variants
 ---------------------------------
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
-`python`, `uv`, `arm-13.2.rel1`, `ci-runtime`, `dev`, `jlink`). It installs
-what it needs itself, so it can be reused by any image.
+`python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`). It
+installs what it needs itself, so it can be reused by any image.
 
 An **image** picks a base image, and each of its **variants** lists the
 features to stack, in order:
@@ -40,14 +40,16 @@ images:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
       dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
+      doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
 ```
 
 The order matters twice:
 
 - it is the order of the layers, so reordering a feature invalidates every
   layer after it and forces a full rebuild and re-push;
-- read vertically, `base` is a prefix of `ci`, which is a prefix of `dev`.
-  That common prefix is what lets the variants share the expensive layers,
+- read vertically, `base` is a prefix of `ci`, which is a prefix of both `dev`
+  and `doc`. That common prefix is what lets the variants share the expensive
+  layers,
   starting with the 1.2 GB ARM toolchain. The sharing itself comes from the
   build cache declared in the build workflow (`cache-from` / `cache-to`):
   identical instructions alone do not produce identical layers.
@@ -59,7 +61,15 @@ Which variant to consume:
 | `base` | build only, no CI plumbing |
 | `ci` | jobs running under the Forgejo runner (node, git, ssh) |
 | `dev` | devcontainers: probes, debuggers, non-root `dev` user |
+| `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-jlink` | `dev` plus JLink, **built locally, never pushed** |
+
+`doc` is `ci` plus `doxygen` and `graphviz`, 357 MB of which 293 MB is doxygen
+alone (the Debian package depends on libclang). That is why it is a variant of
+its own instead of a feature of `base`: only the documentation job pays for
+it, no firmware build and no devcontainer does. It keeps the ARM toolchain
+because the `doc` target of the projects is a target of their firmware CMake
+project, so reaching it means configuring that project.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is exactly what `jlink` does, and why it is the

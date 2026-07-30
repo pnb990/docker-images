@@ -14,6 +14,7 @@ features:
   python: "python.j2"
   uv: "uv.j2"
   arm-13.2.rel1: "arm-none-eabi.j2"
+  doxygen: "doxygen.j2"
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
   jlink: "jlink.j2"
@@ -31,6 +32,13 @@ images:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
       dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
+      # Documentation only. It extends `ci` and not `base` because it is meant
+      # to be the `container:` of a Forgejo job, and the runner executes the
+      # JavaScript actions with the node of the container, which `ci-runtime`
+      # carries. It keeps the toolchain because the `doc` target of the
+      # projects is a target of their firmware CMake project: reaching it
+      # means configuring that project, which needs arm-none-eabi-gcc.
+      doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
       # Local build only: SEGGER restricts the redistribution of the JLink
       # .deb, so this variant is deliberately absent from the push matrix of
       # .github/workflows/docker-build-and-push.yaml.
