@@ -55,3 +55,20 @@ RUN wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh \
         sh /tmp/uv-install.sh \
     && rm /tmp/uv-install.sh \
     && uv --version
+
+# -------------------------------------------------------------------
+# provenance
+# -------------------------------------------------------------------
+# Kept last in every image: IMAGE_COMMIT changes at every build, and an ARG
+# read by a RUN invalidates that layer and everything after it. Last means
+# the only rebuilt layer is this one, a few bytes.
+#
+# Written to a file, not only to a LABEL: a job running inside the container
+# can read a file, it cannot read the labels of its own image. This is what
+# makes a floating tag traceable -- the log of a green run says exactly which
+# commit to pin when that build has to be rolled back to.
+ARG IMAGE_COMMIT=unknown
+LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
+RUN printf 'image=%s\nvariant=%s\ncommit=%s\n' \
+        'python3' 'base' "$IMAGE_COMMIT" \
+        > /etc/pnb-image

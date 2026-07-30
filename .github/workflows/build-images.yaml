@@ -14,6 +14,12 @@ env:
   # Moving to another registry (phase 4) is a change to this single line.
   IMAGE_NAMESPACE: pnb990
 
+  # Which branch is allowed to move the `-latest` tag the other repositories
+  # consume. Written out rather than taken from a context: the `github` /
+  # `forgejo` event payload only carries a default branch on some event types,
+  # and a silently empty value here would make every branch `-latest`.
+  DEFAULT_BRANCH: master
+
 jobs:
   # prepare:
   #   runs-on: STM32
@@ -124,11 +130,21 @@ jobs:
 
           file="images/${{ matrix.name }}.${{ matrix.variant }}.Dockerfile"
 
+          # The commit that last touched this Dockerfile, not HEAD: it is the
+          # identity of the image content, so the immutable `-<commit>` tag
+          # stays the same across pushes that do not change the image.
           file_commit=$(git log -n 1 --format=%H -- "$file")
           branch_head=$(git rev-parse HEAD)
           branch_name="$FORGEJO_REF_NAME"
 
-          if [ "$file_commit" = "$branch_head" ]; then
+          # The moving tags describe what the default branch currently says an
+          # image is, so the only question is which branch is building. It used
+          # to be `file_commit = branch_head`, which was wrong twice: a push of
+          # several commits whose Dockerfile change is not the head commit left
+          # `-latest` frozen on the previous image forever, and a work branch
+          # whose head commit did touch a Dockerfile published `-latest` from
+          # outside the default branch.
+          if [ "$branch_name" = "$DEFAULT_BRANCH" ]; then
             is_latest=true
           else
             is_latest=false
@@ -142,6 +158,7 @@ jobs:
           echo "Dockerfile commit : $file_commit"
           echo "Branch head       : $branch_head"
           echo "Branch            : $branch_name"
+          echo "Default branch    : $DEFAULT_BRANCH"
           echo "Is latest         : $is_latest"
 
       - name: Set image tags
@@ -160,21 +177,30 @@ jobs:
           # `base-tmp/review_image_building`.
           branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
 
+          # Three kinds of tag:
+          #   -<commit>  immutable, what consumers pin;
+          #   -<branch>  per branch, so a work branch can be tried out;
+          #   -latest and the bare <variant> alias, moving, default branch
+          #             only -- a work branch must never be able to move what
+          #             the other repositories consume.
           {
             echo "tags<<EOF"
-            echo "$repo:${variant}"
             echo "$repo:${variant}-$branch"
             echo "$repo:${variant}-$commit"
             if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
+              echo "$repo:${variant}"
               echo "$repo:${variant}-latest"
             fi
             echo "EOF"
           } >> "$FORGEJO_OUTPUT"
 
           echo "tags:"
-          echo "  $repo:${variant}"
           echo "  $repo:${variant}-$branch"
           echo "  $repo:${variant}-$commit"
+          if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
+            echo "  $repo:${variant}"
+            echo "  $repo:${variant}-latest"
+          fi
 
       - name: Login to Docker Hubs
         uses: docker/login-action@v3
@@ -189,6 +215,11 @@ jobs:
           file: ${{ steps.file_commit.outputs.dockerfile }}
           push: true
           tags: ${{ steps.img.outputs.tags }}
+          # Stamped into /etc/pnb-image by the last layer of every Dockerfile.
+          # Without it a job running on a floating tag leaves no trace of the
+          # image it ran in, and a green run cannot be turned back into a pin.
+          build-args: |
+            IMAGE_COMMIT=${{ steps.file_commit.outputs.file_commit }}
           # Identical instructions do not produce identical layers: a rebuilt
           # layer gets a fresh digest and is stored again. Only a cache hit
           # makes buildkit reuse the very same blob, so the variants share

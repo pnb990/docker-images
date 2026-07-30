@@ -180,3 +180,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 USER ${USERNAME}
+
+# -------------------------------------------------------------------
+# provenance
+# -------------------------------------------------------------------
+# Kept last in every image: IMAGE_COMMIT changes at every build, and an ARG
+# read by a RUN invalidates that layer and everything after it. Last means
+# the only rebuilt layer is this one, a few bytes.
+#
+# Written to a file, not only to a LABEL: a job running inside the container
+# can read a file, it cannot read the labels of its own image. This is what
+# makes a floating tag traceable -- the log of a green run says exactly which
+# commit to pin when that build has to be rolled back to.
+#
+# `dev` hands over a non-root image, and /etc is only writable by root, so
+# switch back for this layer and hand the image back the way `dev` left it.
+# `jlink` returns to the user `dev` created, so testing `dev` covers it too.
+USER root
+ARG IMAGE_COMMIT=unknown
+LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
+RUN printf 'image=%s\nvariant=%s\ncommit=%s\n' \
+        'fw-arm-none-eabi-13.2.rel1' 'dev-jlink' "$IMAGE_COMMIT" \
+        > /etc/pnb-image
+USER ${USERNAME}
