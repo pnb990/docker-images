@@ -250,6 +250,64 @@ after phase 2, one variable at a time.
   Two toolchain versions means two config entries, not two tags. Verbose but
   explicit; keep it.
 
+## 5bis. TODO — publishing the generated documentation (deferred 2026-07-30)
+
+Deliberately parked: the answer has to be **the same for every project**, so it
+is not something to settle inside pnbchrono. Written down here with what the
+investigation already established, so the next attempt does not restart from
+zero.
+
+### Where it stands
+
+The `doc` variant of `fw-arm-none-eabi-13.2.rel1` exists and works, and
+`pnbchrono/.github/workflows/build-doc.yaml` builds the doxygen HTML on every
+push to master. What is missing is only the last step: making that HTML
+*readable* somewhere. Today the job stops at `actions/upload-artifact`, and the
+publication step is left commented at the end of the file.
+
+### The constraint that shapes everything
+
+**Forgejo has no Pages feature and will not get one** — the request is closed
+as out of scope (forgejo/forgejo#2708). Every other forge answer (GitHub /
+GitLab / Codeberg Pages) is therefore unavailable as such.
+
+### Options surveyed, with their real cost
+
+| Option | What it gives | What it costs |
+|---|---|---|
+| **rsync/ssh to a web server** | doc browsable at a stable URL; only changed files travel (a few kB per run) | a directory + a vhost on the server, and an ssh deploy key as a Forgejo secret. Free if the runner sits on the same host as the web server: a `cp` is enough |
+| **Forgejo generic package registry** | stays inside Forgejo, no new infrastructure, versioned, visible in the Packages tab | 43 MB pushed per run, accumulating; and you still download and untar to read it |
+| **git-pages** (the software behind Codeberg Pages) | the closest thing to real Pages for Forgejo | a separate Go service: container, TOML config, storage backend, and an authorisation scheme based on **DNS TXT records** — the awkward part on a LAN |
+| **artifact only** (today) | zero infrastructure | download, unzip, open locally |
+
+Sizes measured on pnbchrono, for reference: **75 MB of HTML, 43 MB gzipped**.
+That is what rules out pushing a tarball on every run and favours an
+incremental copy.
+
+Leaning: the rsync/web-server option, because the Forgejo instance already sits
+behind a reverse proxy (name-based vhost plus mutual TLS on 443), so serving one
+more directory is the smallest possible step. But see the open questions below
+before committing.
+
+### What has to be decided first, and for all projects at once
+
+1. **Where the documentation lives** — a directory on the Forgejo host or
+   another machine, and under which URL (`/doc/<project>/`, one subdomain per
+   project, …). This is the part that must be uniform, otherwise every project
+   invents its own.
+2. **Who may read it** — behind the same mutual TLS as the rest, or plain on the
+   LAN. This can decide the location more than the web server does.
+3. **Where the runner runs.** If the Forgejo runner is on the same host as the
+   web server, the whole ssh-key half disappears and the publication is a `cp`.
+   Answer this one first: it changes the shape of the solution.
+4. **Which web server fronts the instance** (nginx or Apache). Only affects the
+   syntax of the vhost snippet, not the workflow.
+
+### Prior art worth copying
+
+`publish-doxygen` from `tgockel/nginxconfig` is the canonical shape of the
+rsync-to-nginx approach.
+
 ## 6. Open questions
 
 1. Does the `debian` runner label support `container:`? If not, align pnbchrono
