@@ -26,8 +26,8 @@ Model: features, images, variants
 ---------------------------------
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
-`python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`). It
-installs what it needs itself, so it can be reused by any image.
+`python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`,
+`x11`). It installs what it needs itself, so it can be reused by any image.
 
 An **image** picks a base image, and each of its **variants** lists the
 features to stack, in order:
@@ -62,6 +62,7 @@ Which variant to consume:
 | `ci` | jobs running under the Forgejo runner (node, git, ssh) |
 | `dev` | devcontainers: probes, debuggers, non-root `dev` user |
 | `doc` | the CI job that generates the doxygen documentation, and it only |
+| `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |
 | `dev-jlink` | `dev` plus JLink, **built locally, never pushed** |
 
 `doc` is `ci` plus `doxygen` and `graphviz`, 357 MB of which 293 MB is doxygen
@@ -71,9 +72,32 @@ it, no firmware build and no devcontainer does. It keeps the ARM toolchain
 because the `doc` target of the projects is a target of their firmware CMake
 project, so reaching it means configuring that project.
 
+`dev-x11` is `dev` plus `python3-tk`, `xauth` and `x11-apps`, 11 MB. It exists
+because Debian keeps `tkinter` out of the `python3` package -- `_tkinter`
+drags in Tcl/Tk and X11, which a CI image has no use for -- and because it
+cannot be installed from PyPI: it is a C extension of the standard library.
+The container stays an X *client*; the display comes from the host through
+`$DISPLAY` and the socket the devcontainer bind-mounts:
+
+```jsonc
+// .devcontainer/devcontainer.json
+"containerEnv": { "DISPLAY": "${localEnv:DISPLAY}" },
+"mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+],
+```
+
+`xeyes` answers "is the display reachable at all" without involving python.
+
+Qt is deliberately absent: PySide6 and PyQt need libGL and libEGL, and the
+mesa stack behind them is 75 MB before a single Qt library, 118 MB with
+Debian's `python3-pyqt6`. Nothing in the projects uses Qt. The list of system
+libraries to add the day one does is in `ressources/templates/x11.j2`; Qt
+itself comes with the PyPI wheels, in the project environment, not here.
+
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
-be stacked on top of it, which is exactly what `jlink` does, and why it is the
-last one.
+be stacked on top of it, which is what `jlink` and `x11` do, and why they come
+last.
 
 SEGGER restricts the redistribution of the JLink `.deb`, so `jlink` is kept
 out of `dev` and the `dev-jlink` variant is deliberately absent from the push
@@ -107,7 +131,9 @@ Adding a feature or a variant
 2. Declare it under `features:` in `config/default/config.yaml`, then add it
    to the variants that need it, keeping the common prefix first.
 3. If you add a variant, add the matching `name`/`variant` pair to the matrix
-   of `.github/workflows/docker-build-and-push.yaml`.
+   of `.github/workflows/build-images.yaml`, right after the variant whose
+   layers it extends: the matrix runs sequentially and each job builds on the
+   cache the previous one wrote.
 4. `uv run python3 ./src/main.py`, check the diff under `images/`, commit both
    the template and the generated files.
 

@@ -16,6 +16,11 @@
     },
     {
         "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "dev-x11",
+        "file": "fw-arm-none-eabi-13.2.rel1.dev-x11.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
         "variant": "doc",
         "file": "fw-arm-none-eabi-13.2.rel1.doc.Dockerfile"
     },
