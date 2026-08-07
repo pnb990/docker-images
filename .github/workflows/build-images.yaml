@@ -95,6 +95,9 @@ jobs:
           # needs is the one the previous job has just written.
           - name: "fw-arm-none-eabi-13.2.rel1"
             variant: dev-x11
+          # Extends dev-x11, so it follows it for the same reason.
+          - name: "fw-arm-none-eabi-13.2.rel1"
+            variant: dev-pyqt6
           - name: "fw-arm-none-eabi-13.2.rel1"
             variant: doc
           - name: "python3"

@@ -21,6 +21,11 @@
     },
     {
         "name": "fw-arm-none-eabi-13.2.rel1",
+        "variant": "dev-pyqt6",
+        "file": "fw-arm-none-eabi-13.2.rel1.dev-pyqt6.Dockerfile"
+    },
+    {
+        "name": "fw-arm-none-eabi-13.2.rel1",
         "variant": "doc",
         "file": "fw-arm-none-eabi-13.2.rel1.doc.Dockerfile"
     },

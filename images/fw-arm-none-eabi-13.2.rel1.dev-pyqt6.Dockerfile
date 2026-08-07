@@ -6,8 +6,8 @@
 # Do not edit by hand: edit ressources/templates/ and regenerate.
 #
 # image    : fw-arm-none-eabi-13.2.rel1
-# variant  : dev-x11
-# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> x11
+# variant  : dev-pyqt6
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> x11 -> pyqt6
 
 FROM debian:trixie-slim
 
@@ -197,6 +197,46 @@ LABEL description="Devcontainer image with an X11 client stack and tkinter"
 USER ${USERNAME}
 
 # -------------------------------------------------------------------
+# feature: pyqt6
+# -------------------------------------------------------------------
+# Qt 6 from Debian, bindings included: everything a GUI tool richer than what
+# tkinter can express needs, without a wheel to build. 114 MB on top of the
+# `x11` feature, most of it libqt6gui6 and the mesa stack it depends on
+# (libGL, libEGL), which is why this is a feature and a variant of its own
+# rather than something added to `x11`: a devcontainer that only runs
+# tools/sim_panel.py has no reason to carry it.
+#
+# python3-pyqt6 pulls what the xcb platform plugin needs on its own,
+# libxcb-cursor0 included -- Qt requires it since 6.5 and says so itself when
+# the plugin fails to load. Nothing else has to be listed here; the plugin was
+# verified to reach a real X server from this image.
+#
+# Debian installs the bindings in /usr/lib/python3/dist-packages, which a uv
+# project environment does not see. Two ways to use them:
+#
+#   - `uv venv --system-site-packages`, for a tool that wants the Qt of the
+#     image;
+#   - declare `pyqt6` (or `pyside6`) in the project dependencies, and the PyPI
+#     wheel brings its own copy of Qt into .venv -- it still needs the system
+#     libraries this feature installs, which is the other reason to have it.
+#
+# A script run with /usr/bin/python3 sees them with no setup at all.
+#
+# Stacked after `x11`, which ends on the non-root user of `dev`: switch back
+# to root and hand the image back the way it was found, the same contract as
+# `jlink` and `x11`.
+ARG USERNAME=dev
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3-pyqt6 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+LABEL description="Devcontainer image with X11, tkinter and Qt 6 (PyQt6)"
+
+USER ${USERNAME}
+
+# -------------------------------------------------------------------
 # provenance
 # -------------------------------------------------------------------
 # Kept last in every image: IMAGE_COMMIT changes at every build, and an ARG
@@ -215,6 +255,6 @@ USER root
 ARG IMAGE_COMMIT=unknown
 LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
 RUN printf 'image=%s\nvariant=%s\ncommit=%s\n' \
-        'fw-arm-none-eabi-13.2.rel1' 'dev-x11' "$IMAGE_COMMIT" \
+        'fw-arm-none-eabi-13.2.rel1' 'dev-pyqt6' "$IMAGE_COMMIT" \
         > /etc/pnb-image
 USER ${USERNAME}

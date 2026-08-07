@@ -27,7 +27,8 @@ Model: features, images, variants
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
 `python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`,
-`x11`). It installs what it needs itself, so it can be reused by any image.
+`x11`, `pyqt6`). It installs what it needs itself, so it can be reused by any
+image.
 
 An **image** picks a base image, and each of its **variants** lists the
 features to stack, in order:
@@ -63,6 +64,7 @@ Which variant to consume:
 | `dev` | devcontainers: probes, debuggers, non-root `dev` user |
 | `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |
+| `dev-pyqt6` | `dev-x11` plus Qt 6 and its python bindings |
 | `dev-jlink` | `dev` plus JLink, **built locally, never pushed** |
 
 `doc` is `ci` plus `doxygen` and `graphviz`, 357 MB of which 293 MB is doxygen
@@ -89,11 +91,23 @@ The container stays an X *client*; the display comes from the host through
 
 `xeyes` answers "is the display reachable at all" without involving python.
 
-Qt is deliberately absent: PySide6 and PyQt need libGL and libEGL, and the
-mesa stack behind them is 75 MB before a single Qt library, 118 MB with
-Debian's `python3-pyqt6`. Nothing in the projects uses Qt. The list of system
-libraries to add the day one does is in `ressources/templates/x11.j2`; Qt
-itself comes with the PyPI wheels, in the project environment, not here.
+Mounting the socket is not enough by itself: an X server that accepts local
+clients by user id (`SI:localuser:`, the common default) checks the uid on the
+other end of the socket. The `dev` user is uid 1000, so it is let in when the
+user on the host is uid 1000 too, and a shell that has become root in the
+container is refused -- "Authorization required, but no authorization protocol
+specified", which is the same message a missing cookie gives. If the uids
+differ, forward the cookie instead: mount an `.Xauthority` and point
+`XAUTHORITY` at it.
+
+`dev-pyqt6` is `dev-x11` plus `python3-pyqt6`, 114 MB more: Qt 6 from Debian,
+bindings included, no wheel to build. It pulls what the xcb platform plugin
+needs on its own, `libxcb-cursor0` included. Debian installs the bindings in
+`/usr/lib/python3/dist-packages`, which a uv project environment does not see:
+either create it with `uv venv --system-site-packages`, or declare `pyqt6` /
+`pyside6` in the project dependencies and let the PyPI wheel bring its own Qt
+into `.venv` -- it still needs the system libraries this variant installs.
+A script run with `/usr/bin/python3` needs no setup at all.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come
