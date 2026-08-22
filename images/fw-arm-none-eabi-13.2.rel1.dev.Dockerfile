@@ -163,13 +163,26 @@ CMD ["/bin/bash"]
 # makes a floating tag traceable -- the log of a green run says exactly which
 # commit to pin when that build has to be rolled back to.
 #
+# /etc/image-info, and the shape of os-release and machine-info: quoted
+# KEY="value" lines, so the file is both readable with `cat` and sourceable
+# with `. /etc/image-info`. Not /etc/*-release, which is the legacy
+# distro-identification pile os-release was written to replace, and not
+# os-release itself -- that is a symlink into /usr/lib owned by the base
+# distribution, and appending to it means either editing the vendor's file or
+# breaking the link.
+#
+# The keys are prefixed. A bare COMMIT= would collide with a local of whatever
+# script sources this. IMAGE_ID and IMAGE_VERSION are avoided on purpose: they
+# are os-release spec names with defined meanings, and borrowing them for
+# something else is worse than not using them.
+#
 # `dev` hands over a non-root image, and /etc is only writable by root, so
 # switch back for this layer and hand the image back the way `dev` left it.
 # `jlink` returns to the user `dev` created, so testing `dev` covers it too.
 USER root
 ARG IMAGE_COMMIT=unknown
 LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
-RUN printf 'image=%s\nvariant=%s\ncommit=%s\n' \
+RUN printf 'IMAGE_NAME="%s"\nIMAGE_VARIANT="%s"\nIMAGE_COMMIT="%s"\n' \
         'fw-arm-none-eabi-13.2.rel1' 'dev' "$IMAGE_COMMIT" \
-        > /etc/pnb-image
+        > /etc/image-info
 USER ${USERNAME}
