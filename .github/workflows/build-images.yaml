@@ -224,7 +224,7 @@ jobs:
           file: ${{ steps.file_commit.outputs.dockerfile }}
           push: true
           tags: ${{ steps.img.outputs.tags }}
-          # Stamped into /etc/pnb-image by the last layer of every Dockerfile.
+          # Stamped into /etc/image-info by the last layer of every Dockerfile.
           # Without it a job running on a floating tag leaves no trace of the
           # image it ran in, and a green run cannot be turned back into a pin.
           build-args: |
