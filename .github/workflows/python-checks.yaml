@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+
+# Thin caller: the steps live once in soft-lib/ci, this file holds what is
+# specific to this project -- the trigger, the image pin and the test command.
+# It replaces test-python.yaml, which installed node and uv into a bare debian
+# by hand on every run and drove the linters through a python script.
+#
+# The REUSE check is not here; it has its own caller, lint-reuse.yaml.
+
+"on":
+  push:
+
+jobs:
+  python-checks:
+    # Pinned to a commit, like the image below: a change in soft-lib/ci breaks
+    # nothing here until this line is bumped, which is a reviewable commit and
+    # a git revert away.
+    uses: soft-lib/ci/.github/workflows/python-checks.yaml@56c61c009f0c3adea4c9ea57189bc215f1f69e11
+    with:
+      # This repository builds that image, and pins one of its own past builds
+      # to run its checks in. That is a bootstrap, not a cycle: build-images
+      # runs on the host with no container at all, so nothing here ever waits
+      # on an image this commit has not produced yet. The tag is immutable, so
+      # a broken build cannot reach back and redden a run that already passed,
+      # and the way out of a bad bump is the same `git revert` as anywhere else
+      # -- the previous tag is still in the registry.
+      image: pnb990/python3:ci-6768dd989b373e25b6ef4462ecd0503ae498bd3c
+
+      # No submodules in this repository.
+      submodules: "false"
+
+      # The one thing here that is a test rather than a linter: images/ is
+      # generated but committed, and the build workflow consumes the committed
+      # copy, so a hand edit or a forgotten regeneration has to fail the run.
+      test: ./tests/check_images_uptodate.sh
