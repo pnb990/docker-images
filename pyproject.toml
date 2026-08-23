@@ -15,9 +15,12 @@ dependencies = [
 ]
 
 [dependency-groups]
+# ruff replaces both black and pycodestyle: it formats with black's output and
+# lints with pycodestyle's checks, from the single configuration below instead
+# of black's pyproject entry plus whatever pycodestyle read, which was nothing
+# -- it only looks at setup.cfg and tox.ini, and there is neither here.
 dev = [
-    "black",
-    "pycodestyle",
+    "ruff",
     "pylint",
     "pyright",
     "reuse",
@@ -27,5 +30,48 @@ dev = [
 # Scripts live in src/ and are run directly, there is nothing to install.
 package = false
 
-[tool.black]
+[tool.ruff]
 line-length = 79
+
+[tool.ruff.lint]
+# E and W are the pycodestyle checks, F (pyflakes) and I (import sorting) come
+# with the same binary -- nothing here ever sorted imports before.
+select = ["E", "W", "F", "I"]
+
+# What is left of .pylintrc. That file was a `--generate-rcfile` dump: diffed
+# against a fresh one, every line of it either repeated a pylint default or
+# froze the wording of an older version's comments. It said nothing, so it is
+# gone rather than translated.
+[tool.pylint.main]
+# Base names, not paths. pylint does not read .gitignore, unlike ruff, so
+# `--recursive=y .` would walk the virtualenv without this.
+ignore = ["CVS", ".venv"]
+py-version = "3.11"
+
+[tool.pylint."messages control"]
+# The first entries are pylint's own default disable list, kept because naming
+# the option at all replaces it. fixme is not an addition -- it is in that
+# default -- but tests/test.py used to pass --disable=W0511 by hand as well,
+# which is the same intent written twice.
+#
+# line-too-long is off because ruff's E501 already reports it, from the single
+# line-length above. .pylintrc carried max-line-length=100 while black wrapped
+# at 79, so pylint's copy of the number had never once fired.
+disable = [
+    "raw-checker-failed",
+    "bad-inline-option",
+    "locally-disabled",
+    "file-ignored",
+    "suppressed-message",
+    "useless-suppression",
+    "deprecated-pragma",
+    "use-symbolic-message-instead",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+    "fixme",
+    "line-too-long",
+]
+
+# pyright needs no section here: it walks the tree from the project root, and
+# its default exclusions already cover .venv (any dot directory) and
+# __pycache__. The only python in this repository is src/ and tests/.
