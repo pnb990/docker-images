@@ -1,47 +1,33 @@
-# SPDX-FileCopyrightText: 2025 Pierre-Noel Bouteville  <pnb990@gmail.com>
+# SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
 #
 # SPDX-License-Identifier: BSD-3-Clause
+
 ---
+
+# Thin caller: the steps live once in soft-lib/ci, this file holds what is
+# specific to this project -- the trigger and the image pin.
+#
+# Its own file, and so its own line in the run list, rather than a step of
+# python-checks.yaml: licence headers are not a python matter, and a check
+# folded into another job is a check nobody can see ran.
 
 "on":
   push:
 
 jobs:
   lint-reuse:
-    # TODO: once the python3 images are republished, run this in
-    # `container: image: <registry>/python3:ci-<commit>` and drop the two
-    # install steps below.
-    runs-on: debian
-    steps:
-      # The `debian` label starts the job in a bare container: node is needed
-      # by the JavaScript actions, git by the checkout, file by python-magic
-      # which reuse depends on.
-      - name: Install dep
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends \
-              ca-certificates curl wget nodejs git file
+    # Pinned to a commit, like the image below: a change in soft-lib/ci breaks
+    # nothing here until this line is bumped, which is a reviewable commit and
+    # a git revert away.
+    uses: soft-lib/ci/.github/workflows/lint-reuse.yaml@56c61c009f0c3adea4c9ea57189bc215f1f69e11
+    with:
+      # See python-checks.yaml for why pinning one of this repository's own
+      # images is a bootstrap and not a cycle.
+      image: pnb990/python3:ci-6768dd989b373e25b6ef4462ecd0503ae498bd3c
 
-      - name: Checkout the repo
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
+      # No submodules in this repository.
+      submodules: "false"
 
-      # Download, run, then check: piping the installer into sh hides a failed
-      # download, and the job then fails much later on a confusing error.
-      - name: Install uv
-        run: |
-          set -e
-          if ! command -v uv > /dev/null; then
-            wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh
-            env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
-                sh /tmp/uv-install.sh
-            rm /tmp/uv-install.sh
-          fi
-          uv --version
-
-      - name: Install dependencies
-        run: uv sync --dev --frozen
-
-      - name: Check REUSE compliance
-        run: uv run reuse lint
+      # `pinned` is left at its default, true: reuse is a dev dependency of
+      # this project, so the version that lints here is the one in uv.lock and
+      # the one a developer gets locally.
