@@ -122,8 +122,18 @@ jobs:
       - name: Setup docker config dir
         run: echo "DOCKER_CONFIG=${RUNNER_TEMP:-/tmp}/docker" >> "$FORGEJO_ENV"
 
+      # fetch-depth 0, the full history, and it is not an optimisation to
+      # revisit: the step below asks `git log -- <file>` which commit last
+      # touched a Dockerfile, and that question needs commits to walk back
+      # through. At the default depth of 1 the clone holds exactly HEAD, so
+      # the only answer it can give is HEAD -- which is what happened for
+      # months: every push to master republished a new immutable tag for a
+      # byte-identical image, and the tag every project pins, ci-6768dd9, is a
+      # merge commit that never touched python3.ci.Dockerfile.
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # docker-container, not the default `docker` driver: exporting a
       # registry cache is only supported by the former.
@@ -143,6 +153,18 @@ jobs:
           # identity of the image content, so the immutable `-<commit>` tag
           # stays the same across pushes that do not change the image.
           file_commit=$(git log -n 1 --format=%H -- "$file")
+          # Two forms of the same commit date, one per consumer, and both
+          # taken from the commit rather than from `date`: a build time would
+          # change on every rebuild and destroy the very property the line
+          # above exists for.
+          #
+          #   file_date      YYYYMMDD, for the image tag -- a tag may not
+          #                  contain ':' or '+', and it is read by eye;
+          #   file_date_iso  RFC 3339, for /etc/image-info and for the
+          #                  org.opencontainers.image.created label, which the
+          #                  OCI spec defines as an RFC 3339 date-time.
+          file_date=$(git log -n 1 --format=%cs "$file_commit" | tr -d '-')
+          file_date_iso=$(git log -n 1 --format=%cI "$file_commit")
           branch_head=$(git rev-parse HEAD)
           branch_name="$FORGEJO_REF_NAME"
 
@@ -160,11 +182,14 @@ jobs:
           fi
 
           echo "file_commit=$file_commit" >> "$FORGEJO_OUTPUT"
+          echo "file_date=$file_date" >> "$FORGEJO_OUTPUT"
+          echo "file_date_iso=$file_date_iso" >> "$FORGEJO_OUTPUT"
           echo "branch_name=$branch_name" >> "$FORGEJO_OUTPUT"
           echo "is_latest=$is_latest" >> "$FORGEJO_OUTPUT"
           echo "dockerfile=$file" >> "$FORGEJO_OUTPUT"
 
           echo "Dockerfile commit : $file_commit"
+          echo "Dockerfile date   : $file_date_iso"
           echo "Branch head       : $branch_head"
           echo "Branch            : $branch_name"
           echo "Default branch    : $DEFAULT_BRANCH"
@@ -178,6 +203,7 @@ jobs:
           name="${{ matrix.name }}"
           variant="${{ matrix.variant }}"
           commit="${{ steps.file_commit.outputs.file_commit }}"
+          date="${{ steps.file_commit.outputs.file_date }}"
 
           repo="$IMAGE_NAMESPACE/$name"
 
@@ -186,15 +212,25 @@ jobs:
           # `base-tmp/review_image_building`.
           branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
 
-          # Three kinds of tag:
-          #   -<commit>  immutable, what consumers pin;
-          #   -<branch>  per branch, so a work branch can be tried out;
+          # Four kinds of tag:
+          #   -<date>-<commit>  immutable, what consumers pin;
+          #   -<commit>         the same image, without the date, kept so the
+          #                     pins written before the date existed keep
+          #                     resolving;
+          #   -<branch>         per branch, so a work branch can be tried out;
           #   -latest and the bare <variant> alias, moving, default branch
-          #             only -- a work branch must never be able to move what
-          #             the other repositories consume.
+          #                     only -- a work branch must never be able to
+          #                     move what the other repositories consume.
+          #
+          # The date is there because a commit hash has no order. Two pins
+          # cannot be compared by eye, and the question a pin raises is always
+          # "am I behind?" -- which `ci-20260822-53142d0...` answers at a
+          # glance and `ci-53142d0...` does not. It is the commit's own date,
+          # so an unchanged image keeps the same tag, exactly like the hash.
           {
             echo "tags<<EOF"
             echo "$repo:${variant}-$branch"
+            echo "$repo:${variant}-${date}-$commit"
             echo "$repo:${variant}-$commit"
             if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
               echo "$repo:${variant}"
@@ -205,6 +241,7 @@ jobs:
 
           echo "tags:"
           echo "  $repo:${variant}-$branch"
+          echo "  $repo:${variant}-${date}-$commit"
           echo "  $repo:${variant}-$commit"
           if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
             echo "  $repo:${variant}"
@@ -229,6 +266,7 @@ jobs:
           # image it ran in, and a green run cannot be turned back into a pin.
           build-args: |
             IMAGE_COMMIT=${{ steps.file_commit.outputs.file_commit }}
+            IMAGE_DATE=${{ steps.file_commit.outputs.file_date_iso }}
           # Identical instructions do not produce identical layers: a rebuilt
           # layer gets a fresh digest and is stored again. Only a cache hit
           # makes buildkit reuse the very same blob, so the variants share
