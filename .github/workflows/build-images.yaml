@@ -122,8 +122,18 @@ jobs:
       - name: Setup docker config dir
         run: echo "DOCKER_CONFIG=${RUNNER_TEMP:-/tmp}/docker" >> "$FORGEJO_ENV"
 
+      # fetch-depth 0, the full history, and it is not an optimisation to
+      # revisit: the step below asks `git log -- <file>` which commit last
+      # touched a Dockerfile, and that question needs commits to walk back
+      # through. At the default depth of 1 the clone holds exactly HEAD, so
+      # the only answer it can give is HEAD -- which is what happened for
+      # months: every push to master republished a new immutable tag for a
+      # byte-identical image, and the tag every project pins, ci-6768dd9, is a
+      # merge commit that never touched python3.ci.Dockerfile.
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # docker-container, not the default `docker` driver: exporting a
       # registry cache is only supported by the former.
