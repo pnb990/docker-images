@@ -1,0 +1,81 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Refuses a commit whose images/ does not match what src/main.py produces from
+# ressources/templates/ and config/.
+#
+# The same check runs in CI, as the `test:` input of python-checks.yaml. This
+# hook is not a second implementation of it: it is the same question asked one
+# step earlier, so that a forgotten regeneration costs a re-`git add` instead
+# of a red run and a fixup commit.
+#
+# Install once per clone, from the repository root:
+#
+#     git config core.hooksPath tools/git-hooks
+#
+# It compares against the INDEX, not the working tree, because that is what is
+# about to be committed. One consequence worth knowing: the generator reads the
+# working tree, so a partially staged change to config/ or ressources/ is
+# compared against images/ generated from the unstaged version. CI, which sees
+# only the commit, stays the authority.
+#
+# Skipping it for one commit: `git commit --no-verify`.
+
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+
+status=0
+
+if ! command -v uv > /dev/null 2>&1; then
+    echo "pre-commit: uv not found, images/ not verified (CI still will)" >&2
+    status=0
+else
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+
+    if ! uv run python3 ./src/main.py -o "$tmp" > "$tmp/.log" 2>&1; then
+        echo "pre-commit: the generator failed" >&2
+        sed 's/^/    /' "$tmp/.log" >&2
+        status=1
+    else
+        rm -f "$tmp/.log"
+
+        # Every generated file must match, byte for byte, the blob staged
+        # under images/. An untracked or unstaged one gives an empty `have`
+        # and fails the same way, which is what we want: it means the file was
+        # generated but never added.
+        for generated in "$tmp"/*; do
+            name="images/$(basename "$generated")"
+            want=$(git hash-object "$generated")
+            have=$(git ls-files -s -- "$name" | awk '{ print $2 }')
+
+            if [ "$want" != "$have" ]; then
+                echo "    $name" >&2
+                status=1
+            fi
+        done
+
+        # And the other direction: a file staged under images/ that the
+        # generator no longer produces, which is what removing a variant from
+        # config/ leaves behind.
+        staged=$(git ls-files -- images/)
+        for name in $staged; do
+            if [ ! -f "$tmp/$(basename "$name")" ]; then
+                echo "    $name (no longer generated)" >&2
+                status=1
+            fi
+        done
+    fi
+fi
+
+if [ "$status" -ne 0 ]; then
+    echo "" >&2
+    echo "pre-commit: images/ does not match the templates." >&2
+    echo "  uv run python3 ./src/main.py && git add images/" >&2
+    echo "" >&2
+fi
+
+exit "$status"
