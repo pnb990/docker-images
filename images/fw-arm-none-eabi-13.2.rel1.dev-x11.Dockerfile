@@ -226,8 +226,17 @@ USER ${USERNAME}
 # `jlink` returns to the user `dev` created, so testing `dev` covers it too.
 USER root
 ARG IMAGE_COMMIT=unknown
+# The commit's own date, RFC 3339, not the build time -- a build time would
+# change on every rebuild and destroy the property IMAGE_COMMIT exists for.
+# It is here because a hash has no order: it answers "which build is this",
+# never "is this older than what I have pinned". The image tag carries the
+# same date in its compact YYYYMMDD form, which is what makes two pins
+# comparable by eye; this one is the full value, so that
+# org.opencontainers.image.created below is what the OCI spec says it is.
+ARG IMAGE_DATE=unknown
 LABEL org.opencontainers.image.revision="$IMAGE_COMMIT"
-RUN printf 'IMAGE_NAME="%s"\nIMAGE_VARIANT="%s"\nIMAGE_COMMIT="%s"\n' \
-        'fw-arm-none-eabi-13.2.rel1' 'dev-x11' "$IMAGE_COMMIT" \
+LABEL org.opencontainers.image.created="$IMAGE_DATE"
+RUN printf 'IMAGE_NAME="%s"\nIMAGE_VARIANT="%s"\nIMAGE_COMMIT="%s"\nIMAGE_DATE="%s"\n' \
+        'fw-arm-none-eabi-13.2.rel1' 'dev-x11' "$IMAGE_COMMIT" "$IMAGE_DATE" \
         > /etc/image-info
 USER ${USERNAME}
