@@ -17,6 +17,7 @@ features:
   doxygen: "doxygen.j2"
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
+  clang: "clang.j2"
   jlink: "jlink.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
@@ -33,20 +34,24 @@ images:
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
+      # clang is stacked right after `dev` in every dev-derived variant
+      # below, so `dev, clang` stays their common prefix and the layer
+      # sharing described above still holds.
+      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
       # projects (pnbchrono's tools/sim_panel.py). Stacked after `dev` and
       # not merged into it: it is 11 MB nobody building firmware in CI needs,
       # and stacking keeps `dev` an exact prefix, so the two variants share
       # every layer up to and including `dev`.
       dev-x11:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, x11]
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
+         x11]
       # `dev-x11` plus Qt 6 and its python bindings, 114 MB more. Same
       # reasoning one step further: `dev-x11` is its exact prefix, so a
       # devcontainer that only needs tkinter never pulls the Qt layer.
       dev-pyqt6:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, x11,
-         pyqt6]
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
+         x11, pyqt6]
       # Documentation only. It extends `ci` and not `base` because it is meant
       # to be the `container:` of a Forgejo job, and the runner executes the
       # JavaScript actions with the node of the container, which `ci-runtime`
@@ -58,7 +63,8 @@ images:
       # .deb, so this variant is deliberately absent from the push matrix of
       # .github/workflows/docker-build-and-push.yaml.
       dev-jlink:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, jlink]
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
+         jlink]
   python3:
     from: "debian:trixie-slim"
     variants:

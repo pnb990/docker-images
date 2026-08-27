@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-13.2.rel1
 # variant  : dev
-# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> clang
 
 FROM debian:trixie-slim
 
@@ -150,6 +150,28 @@ LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
 USER ${USERNAME}
 ENV SHELL=/bin/bash
 CMD ["/bin/bash"]
+
+# -------------------------------------------------------------------
+# feature: clang
+# -------------------------------------------------------------------
+# clang and its tooling (clang-tidy, clangd, clang-format), for the editors
+# and linters of a devcontainer. `bear`, already in `dev`, records the
+# compile commands these tools read.
+#
+# Stacked after `dev`, which hands over a non-root image, so this feature
+# switches back to root itself and returns to the user `dev` created. Same
+# contract as `jlink` and `x11`.
+ARG USERNAME=dev
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
+        clang-tidy \
+        clang-format \
+        clangd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER ${USERNAME}
 
 # -------------------------------------------------------------------
 # provenance
