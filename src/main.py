@@ -165,7 +165,7 @@ def main(argv=None):
         metavar="config file",
         nargs="?",
         type=readable_file,
-        help="configuration file" "environment variable or ",
+        help="configuration file; -c with no value reads $APP_CONFIG_FILE",
         default="config/default/config.yaml",
     )
 

@@ -65,7 +65,6 @@ Which variant to consume:
 | `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |
 | `dev-pyqt6` | `dev-x11` plus Qt 6 and its python bindings |
-| `dev-jlink` | `dev` plus JLink, **built locally, never pushed** |
 
 `doc` is `ci` plus `doxygen` and `graphviz`, 357 MB of which 293 MB is doxygen
 alone (the Debian package depends on libclang). That is why it is a variant of
@@ -113,13 +112,19 @@ A script run with `/usr/bin/python3` needs no setup at all.
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come
 last.
 
-SEGGER restricts the redistribution of the JLink `.deb`, so `jlink` is kept
-out of `dev` and the `dev-jlink` variant is deliberately absent from the push
-matrix. Build it locally:
+The `jlink` feature is declared with **no variant using it**, and the template
+is kept for the same reason. There used to be a `dev-jlink` variant; it was
+removed for two reasons that point the same way. SEGGER restricts the
+redistribution of the JLink `.deb`, so the image could never be pushed to the
+registry at all -- and the J-Link runs on the host anyway, the devcontainer
+reaching it over gdb, which needs nothing installed in the image.
 
-```bash
-docker build -f images/fw-arm-none-eabi-13.2.rel1.dev-jlink.Dockerfile \
-    -t local/fw-arm:dev-jlink .
+Should that change, putting it back is one entry under `variants:`, then
+regenerate:
+
+```yaml
+      dev-jlink:
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, jlink]
 ```
 
 Local usage
@@ -134,8 +139,21 @@ docker build -f images/python3.ci.Dockerfile -t local/python3:ci .
 ```
 
 `images/` is generated but committed, because the build workflow reads it
-directly. Never edit a file in there by hand: regenerate and commit the
-result. The `pytest` workflow fails if `images/` does not match the templates.
+directly. Never edit a file in there by hand: regenerate and commit the result.
+
+Two things enforce that. In CI, `python-checks` runs
+`tests/check_images_uptodate.sh` as its test step and fails when the committed
+files are not what the generator produces. Locally, an optional hook asks the
+same question before the commit rather than after the push:
+
+```bash
+git config core.hooksPath tools/git-hooks
+```
+
+It compares the generator's output against the **index**, so a forgotten
+regeneration costs a `git add` instead of a red run and a fixup commit. It says
+nothing when `uv` is missing -- CI stays the authority -- and
+`git commit --no-verify` skips it for one commit.
 
 Adding a feature or a variant
 -----------------------------
@@ -149,13 +167,31 @@ Adding a feature or a variant
    layers it extends: the matrix runs sequentially and each job builds on the
    cache the previous one wrote.
 4. `uv run python3 ./src/main.py`, check the diff under `images/`, commit both
-   the template and the generated files.
+   the template and the generated files. With the hook installed, forgetting
+   this step stops the commit rather than the CI.
 
 Published tags
 --------------
 
-Each build pushes `<variant>`, `<variant>-<branch>`,
-`<variant>-<commit of the Dockerfile>`, and `<variant>-latest` when the
-Dockerfile has not changed since. Consumers should reference the commit tag:
-bumping an image then becomes a reviewable commit in the project, and a
-rollback is a `git revert`.
+Each build pushes, for one image and one variant:
+
+| Tag | Moves? | For |
+|---|---|---|
+| `<variant>-<date>-<commit>` | no | **what consumers pin** |
+| `<variant>-<commit>` | no | the same image; kept so pins written before the date existed keep resolving |
+| `<variant>-<branch>` | yes | trying a work branch out |
+| `<variant>` and `<variant>-latest` | yes | default branch only |
+
+`<commit>` is the commit that last touched *that Dockerfile*, not the head of
+the push, so an image nothing changed keeps its tags. `<date>` is that same
+commit's date, `YYYYMMDD`, and it is there because a hash has no order: the
+question a pin raises is always "am I behind?", which `ci-20260822-53142d0...`
+answers at a glance and `ci-53142d0...` does not.
+
+Inside the image, `/etc/image-info` carries `IMAGE_COMMIT` and `IMAGE_DATE`
+(RFC 3339 there, since `org.opencontainers.image.created` is defined that way).
+That is what makes a floating tag traceable: a green run's log says exactly
+which commit to pin.
+
+Consumers should reference the dated commit tag: bumping an image is then a
+reviewable commit in the project, and a rollback is a `git revert`.

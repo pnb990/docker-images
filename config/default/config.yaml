@@ -18,6 +18,12 @@ features:
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
   clang: "clang.j2"
+  # Declared with no variant using it: `dev-jlink` was removed because SEGGER
+  # restricts the redistribution of the JLink .deb, so the image could never be
+  # pushed to the registry, and because the J-Link runs on the host anyway --
+  # the devcontainer reaches it over gdb, and needs nothing installed for that.
+  # The feature and ressources/templates/jlink.j2 are kept so that putting the
+  # variant back is one entry under `variants`, not a template to rewrite.
   jlink: "jlink.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
@@ -59,12 +65,6 @@ images:
       # projects is a target of their firmware CMake project: reaching it
       # means configuring that project, which needs arm-none-eabi-gcc.
       doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
-      # Local build only: SEGGER restricts the redistribution of the JLink
-      # .deb, so this variant is deliberately absent from the push matrix of
-      # .github/workflows/docker-build-and-push.yaml.
-      dev-jlink:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
-         jlink]
   python3:
     from: "debian:trixie-slim"
     variants:
