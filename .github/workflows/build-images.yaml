@@ -137,7 +137,12 @@ jobs:
 
       # docker-container, not the default `docker` driver: exporting a
       # registry cache is only supported by the former.
+      #
+      # `id` so the cleanup step at the end of the job can name the builder
+      # this created: the action generates a fresh `builder-<uuid>` per job
+      # and only its own outputs know which one.
       - name: Setup Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
@@ -277,3 +282,21 @@ jobs:
           cache-to: >-
             type=registry,mode=max,ref=${{ env.IMAGE_NAMESPACE }}/${{
             matrix.name }}:buildcache
+
+      # Every job creates its own builder above, and each one costs a
+      # buildkitd container plus a `buildx_buildkit_<name>_state` volume. The
+      # action has a post-step meant to remove it; it did not. 71 of them
+      # accumulated to 101.6 GB, filled /var, and took PostgreSQL down on
+      # 2026-08-25 with a checkpointer PANIC on ENOSPC. This step no longer
+      # depends on that post-step running.
+      #
+      # An 8-image matrix on `on: push` with no branch filter leaks 8 builders
+      # per push when it goes wrong, which is how it got to 71 in nine pushes.
+      #
+      # `always()` is the whole point: without it the step is skipped in
+      # exactly the case that leaks, a failed build -- every orphaned builder
+      # container was in `Exited (1)`. `|| true` keeps a failed cleanup from
+      # failing a build that otherwise passed.
+      - name: Remove the buildx builder
+        if: always()
+        run: docker buildx rm --force "${{ steps.buildx.outputs.name }}" || true
