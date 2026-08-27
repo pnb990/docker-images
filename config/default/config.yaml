@@ -33,7 +33,7 @@ images:
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, jlink]
+      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
       # projects (pnbchrono's tools/sim_panel.py). Stacked after `dev` and
       # not merged into it: it is 11 MB nobody building firmware in CI needs,
