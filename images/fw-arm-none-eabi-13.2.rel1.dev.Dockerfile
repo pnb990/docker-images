@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-13.2.rel1
 # variant  : dev
-# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> clang
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> clang -> jlink
 
 FROM debian:trixie-slim
 
@@ -170,6 +170,43 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         clang-format \
         clangd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER ${USERNAME}
+
+# -------------------------------------------------------------------
+# feature: jlink
+# -------------------------------------------------------------------
+# The SEGGER J-Link tools, installed at container START by
+# ressources/scripts/install-jlink.sh, not baked into a layer here. SEGGER
+# restricts the redistribution of the binaries, so an image carrying them
+# could never be pushed to the registry; the image ships only the installer,
+# which downloads them at runtime once each developer accepts the licence.
+# That is what makes this feature safe to add to every `dev` variant.
+#
+# Stacked after `dev`, which hands over a non-root image, so this feature
+# switches back to root itself and returns to the user `dev` created. Same
+# contract as `clang` and `x11`.
+ARG USERNAME=dev
+USER root
+
+# The installer downloads over HTTPS at runtime, so its two dependencies must
+# be present in the image (`dev` already carries sudo, tar and usbutils).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY ressources/scripts/install-jlink.sh /usr/local/bin/install-jlink.sh
+RUN chmod 0755 /usr/local/bin/install-jlink.sh
+
+# Run the installer on every start, then hand over to the requested command.
+# The installer is idempotent and never fails the start (it warns and exits 0),
+# so `|| true` is belt and braces. `$0` is a throwaway name so that `exec "$@"`
+# expands to the CMD alone. Note: a devcontainer with overrideCommand (the
+# default) replaces this, and must call the installer from its own
+# postStartCommand instead.
+ENTRYPOINT ["/bin/sh", "-c", \
+    "/usr/local/bin/install-jlink.sh || true; exec \"$@\"", "jlink-entrypoint"]
 
 USER ${USERNAME}
 
