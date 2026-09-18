@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 ---
-
 logs:
   level: "DEBUG"
 
@@ -18,12 +17,12 @@ features:
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
   clang: "clang.j2"
-  # Declared with no variant using it: `dev-jlink` was removed because SEGGER
-  # restricts the redistribution of the JLink .deb, so the image could never be
-  # pushed to the registry, and because the J-Link runs on the host anyway --
-  # the devcontainer reaches it over gdb, and needs nothing installed for that.
-  # The feature and ressources/templates/jlink.j2 are kept so that putting the
-  # variant back is one entry under `variants`, not a template to rewrite.
+  # SEGGER restricts the redistribution of the JLink binaries, which is why the
+  # .deb was never baked into a layer. This feature instead ships
+  # ressources/scripts/install-jlink.sh and an ENTRYPOINT that runs it at
+  # container start: the binaries are downloaded at runtime, once each developer
+  # accepts the licence, so the image itself carries none of them and stays
+  # pushable. That is what lets it sit in every `dev` variant below.
   jlink: "jlink.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
@@ -40,24 +39,47 @@ images:
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      # clang is stacked right after `dev` in every dev-derived variant
-      # below, so `dev, clang` stays their common prefix and the layer
-      # sharing described above still holds.
-      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang]
+      # clang then jlink are stacked right after `dev` in every dev-derived
+      # variant below, so `dev, clang, jlink` stays their common prefix and the
+      # layer sharing described above still holds. jlink adds no binaries, only
+      # the runtime installer, so it is cheap to share and safe to push.
+      dev:
+        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang, jlink]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
       # projects (pnbchrono's tools/sim_panel.py). Stacked after `dev` and
       # not merged into it: it is 11 MB nobody building firmware in CI needs,
       # and stacking keeps `dev` an exact prefix, so the two variants share
       # every layer up to and including `dev`.
       dev-x11:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
-         x11]
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-13.2.rel1,
+          ci-runtime,
+          dev,
+          clang,
+          jlink,
+          x11,
+        ]
       # `dev-x11` plus Qt 6 and its python bindings, 114 MB more. Same
       # reasoning one step further: `dev-x11` is its exact prefix, so a
       # devcontainer that only needs tkinter never pulls the Qt layer.
       dev-pyqt6:
-        [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev, clang,
-         x11, pyqt6]
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-13.2.rel1,
+          ci-runtime,
+          dev,
+          clang,
+          jlink,
+          x11,
+          pyqt6,
+        ]
       # Documentation only. It extends `ci` and not `base` because it is meant
       # to be the `container:` of a Forgejo job, and the runner executes the
       # JavaScript actions with the node of the container, which `ci-runtime`
