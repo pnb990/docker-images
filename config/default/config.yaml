@@ -119,4 +119,4 @@ images:
       # layer up to and including ci-runtime. Project-specific packages
       # (can-utils, libusb) and the bench sudoers rule stay in the project's
       # postCreate, not here: this image is meant to stay generic.
-      dev: [locale, python, uv, ci-runtime, build, dev]
+      dev: [locale, python, uv, ci-runtime, build, dev, new_git]
