@@ -110,3 +110,13 @@ images:
     variants:
       base: [locale, python, uv]
       ci: [locale, python, uv, ci-runtime]
+      # Devcontainer variant, for python projects that drive hardware (the
+      # pi-test-bench bench). It extends `ci` -- which already carries node,
+      # npm and git for the JavaScript actions -- with `build` (the C toolchain
+      # a `uv sync` may need to compile a wheel) and `dev` (the interactive
+      # shell, sudo, udev, openocd, gdb-multiarch, usbutils and the `dev`
+      # user). `ci` stays an exact prefix, so the two variants share every
+      # layer up to and including ci-runtime. Project-specific packages
+      # (can-utils, libusb) and the bench sudoers rule stay in the project's
+      # postCreate, not here: this image is meant to stay generic.
+      dev: [locale, python, uv, ci-runtime, build, dev]

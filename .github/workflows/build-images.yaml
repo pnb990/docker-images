@@ -80,7 +80,8 @@ jobs:
       max-parallel: 1
 
       matrix:
-        # Explicit pairs, not a cross product: python3 has no `dev` variant.
+        # Explicit pairs, not a cross product: the two images do not share the
+        # same variant set (python3 has no arm-derived dev-x11/dev-pyqt6/doc).
         # The pairs are the `name`/`variant` fields of images/images_list.json;
         # keep them in sync (a dynamic matrix needs a `prepare` job, see the
         # commented block above).
@@ -104,6 +105,10 @@ jobs:
             variant: base
           - name: "python3"
             variant: ci
+          # Right after `ci`, whose layers it extends (ci is an exact prefix of
+          # dev): the cache entry it needs is the one the previous job wrote.
+          - name: "python3"
+            variant: dev
 
     steps:
       - name: Debug matrix
