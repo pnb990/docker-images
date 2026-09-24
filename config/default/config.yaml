@@ -26,7 +26,7 @@ features:
   jlink: "jlink.j2"
   # Newer git (>= 2.48) built from source, for relative-path worktree linking
   # (Debian trixie ships 2.47). Like clang/jlink it switches back to root and
-  # returns to the dev user, so it is safe to stack after `dev`.
+  # returns to the dev user, so it is safe to stack right after `dev`.
   new_git: "new_git.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
@@ -43,8 +43,8 @@ images:
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      # clang, jlink then new_git are stacked right after `dev` in every
-      # dev-derived variant below, so `dev, clang, jlink, new_git` stays their
+      # new_git, clang then jlink are stacked right after `dev` in every
+      # dev-derived variant below, so `dev, new_git, clang, jlink` stays their
       # common prefix and the layer sharing described above still holds. jlink
       # adds no binaries, only the runtime installer, so it is cheap to share
       # and safe to push.
@@ -57,9 +57,9 @@ images:
           arm-13.2.rel1,
           ci-runtime,
           dev,
+          new_git,
           clang,
           jlink,
-          new_git,
         ]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
       # projects (pnbchrono's tools/sim_panel.py). Stacked after `dev` and
@@ -75,9 +75,9 @@ images:
           arm-13.2.rel1,
           ci-runtime,
           dev,
+          new_git,
           clang,
           jlink,
-          new_git,
           x11,
         ]
       # `dev-x11` plus Qt 6 and its python bindings, 114 MB more. Same
@@ -92,9 +92,9 @@ images:
           arm-13.2.rel1,
           ci-runtime,
           dev,
+          new_git,
           clang,
           jlink,
-          new_git,
           x11,
           pyqt6,
         ]

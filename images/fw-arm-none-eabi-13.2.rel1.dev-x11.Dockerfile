@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-13.2.rel1
 # variant  : dev-x11
-# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> clang -> jlink -> new_git -> x11
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> dev -> new_git -> clang -> jlink -> x11
 
 FROM debian:trixie-slim
 
@@ -152,6 +152,49 @@ ENV SHELL=/bin/bash
 CMD ["/bin/bash"]
 
 # -------------------------------------------------------------------
+# feature: new_git
+# -------------------------------------------------------------------
+# A newer git (>= 2.48) built from source, for relative-path git worktree
+# linking: worktrees keep working when the whole tree is relocated (e.g. the
+# repo is bind-mounted at a different path in a container). Debian trixie ships
+# git 2.47, which lacks it.
+#
+# Built into /usr/local, which precedes /usr/bin on PATH, so it shadows the apt
+# package without removing it (still needed for git-gui/gitk).
+#
+# Stacked after `dev`, which hands over a non-root image, so this feature
+# switches back to root itself and returns to the user `dev` created. Same
+# contract as `clang` and `jlink`.
+ARG USERNAME=dev
+ARG GIT_VERSION=2.53.0
+USER root
+
+# Build dependencies for git: compiler/make, plus curl (remote transport),
+# openssl (https/crypto) and zlib (packfile compression). NO_GETTEXT,
+# NO_TCLTK, NO_EXPAT and NO_RUST below drop the matching dependencies.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        zlib1g-dev \
+        wget \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz \
+        -O /tmp/git-${GIT_VERSION}.tar.gz \
+    && tar -xzf /tmp/git-${GIT_VERSION}.tar.gz -C /tmp \
+    && cd /tmp/git-${GIT_VERSION} \
+    && make -j"$(nproc)" \
+        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local all \
+    && make \
+        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local install \
+    && rm -f /tmp/git-${GIT_VERSION}.tar.gz \
+    && rm -rf /tmp/git-${GIT_VERSION}
+
+USER ${USERNAME}
+
+# -------------------------------------------------------------------
 # feature: clang
 # -------------------------------------------------------------------
 # clang and its tooling (clang-tidy, clangd, clang-format), for the editors
@@ -207,49 +250,6 @@ RUN chmod 0755 /usr/local/bin/install-jlink.sh
 # postStartCommand instead.
 ENTRYPOINT ["/bin/sh", "-c", \
     "/usr/local/bin/install-jlink.sh || true; exec \"$@\"", "jlink-entrypoint"]
-
-USER ${USERNAME}
-
-# -------------------------------------------------------------------
-# feature: new_git
-# -------------------------------------------------------------------
-# A newer git (>= 2.48) built from source, for relative-path git worktree
-# linking: worktrees keep working when the whole tree is relocated (e.g. the
-# repo is bind-mounted at a different path in a container). Debian trixie ships
-# git 2.47, which lacks it.
-#
-# Built into /usr/local, which precedes /usr/bin on PATH, so it shadows the apt
-# package without removing it (still needed for git-gui/gitk).
-#
-# Stacked after `dev`, which hands over a non-root image, so this feature
-# switches back to root itself and returns to the user `dev` created. Same
-# contract as `clang` and `jlink`.
-ARG USERNAME=dev
-ARG GIT_VERSION=2.55.0
-USER root
-
-# Build dependencies for git: compiler/make, plus curl (remote transport),
-# openssl (https/crypto) and zlib (packfile compression). NO_GETTEXT,
-# NO_TCLTK, NO_EXPAT and NO_RUST below drop the matching dependencies.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libcurl4-openssl-dev \
-        libssl-dev \
-        zlib1g-dev \
-        wget \
-        ca-certificates \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz \
-        -O /tmp/git-${GIT_VERSION}.tar.gz \
-    && tar -xzf /tmp/git-${GIT_VERSION}.tar.gz -C /tmp \
-    && cd /tmp/git-${GIT_VERSION} \
-    && make -j"$(nproc)" \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local all \
-    && make \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local install \
-    && rm -f /tmp/git-${GIT_VERSION}.tar.gz \
-    && rm -rf /tmp/git-${GIT_VERSION}
 
 USER ${USERNAME}
 
