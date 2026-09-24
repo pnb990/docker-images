@@ -38,5 +38,10 @@
         "name": "python3",
         "variant": "ci",
         "file": "python3.ci.Dockerfile"
+    },
+    {
+        "name": "python3",
+        "variant": "dev",
+        "file": "python3.dev.Dockerfile"
     }
 ]
