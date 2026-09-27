@@ -53,5 +53,10 @@
         "name": "node",
         "variant": "ci",
         "file": "node.ci.Dockerfile"
+    },
+    {
+        "name": "node",
+        "variant": "dev",
+        "file": "node.dev.Dockerfile"
     }
 ]

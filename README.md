@@ -113,7 +113,8 @@ extensions. Its `node` feature installs a current Node LTS from the official
 tarball (checksum verified) into `/usr/local`, plus `typescript`, `tsx` and
 `@vscode/vsce` globally, all pinned by `ARG`. Debian trixie ships Node 20,
 out of support since April 2026, which is why the apt package is not enough.
-`ci` still carries `ci-runtime`'s apt node, shadowed on `PATH`.
+`ci` still carries `ci-runtime`'s apt node, shadowed on `PATH`. Its `dev`
+variant follows `python3:dev`: `ci` plus `build`, `dev` and `new_git`.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come

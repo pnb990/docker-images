@@ -113,6 +113,9 @@ jobs:
             variant: base
           - name: "node"
             variant: ci
+          # Right after `ci`, whose layers it extends.
+          - name: "node"
+            variant: dev
 
     steps:
       - name: Debug matrix

@@ -133,3 +133,7 @@ images:
     variants:
       base: [locale, node]
       ci: [locale, node, ci-runtime]
+      # Devcontainer variant, same recipe as python3's: `ci` plus `build` (for
+      # native addons) and `dev` (interactive shell, sudo, the `dev` user),
+      # then new_git. `ci` stays an exact prefix.
+      dev: [locale, node, ci-runtime, build, dev, new_git]
