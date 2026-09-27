@@ -43,5 +43,20 @@
         "name": "python3",
         "variant": "dev",
         "file": "python3.dev.Dockerfile"
+    },
+    {
+        "name": "node",
+        "variant": "base",
+        "file": "node.base.Dockerfile"
+    },
+    {
+        "name": "node",
+        "variant": "ci",
+        "file": "node.ci.Dockerfile"
+    },
+    {
+        "name": "node",
+        "variant": "dev",
+        "file": "node.dev.Dockerfile"
     }
 ]

@@ -1,0 +1,57 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville  <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: node
+# -------------------------------------------------------------------
+# A current Node LTS, plus the TypeScript and VS Code extension tooling
+# installed globally. Debian trixie ships Node 20, out of support since
+# April 2026, and @vscode/vsce already requires Node >= 22.
+#
+# The official tarball, not NodeSource: no third-party apt repository to
+# trust, and the checksum below is checked against nodejs.org's own list.
+# Installed into /usr/local, which precedes /usr/bin on PATH, so it shadows
+# the apt node that `ci-runtime` may bring without conflicting with it. Same
+# approach as `new_git`.
+#
+# The global tools are for one-off use and quick checks; a project still pins
+# its own copies in package-lock.json and runs those through `npm ci`.
+ARG NODE_VERSION=24.21.0
+ARG TYPESCRIPT_VERSION=7.0.2
+ARG TSX_VERSION=4.23.15
+ARG VSCE_VERSION=4.0.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget \
+        xz-utils \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN case "$(dpkg --print-architecture)" in \
+        amd64) NODE_ARCH=x64 ;; \
+        arm64) NODE_ARCH=arm64 ;; \
+        *) echo "unsupported architecture" >&2; exit 1 ;; \
+    esac \
+    && NODE_TARBALL="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+    && cd /tmp \
+    && wget -q "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}" \
+    && wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+    && grep " ${NODE_TARBALL}\$" SHASUMS256.txt | sha256sum -c - \
+    && tar -xJf "${NODE_TARBALL}" -C /usr/local \
+        --strip-components=1 --no-same-owner \
+        --exclude='*/CHANGELOG.md' --exclude='*/README.md' \
+        --exclude='*/LICENSE' --exclude='*/doc' \
+    && rm -f "${NODE_TARBALL}" SHASUMS256.txt \
+    && node --version \
+    && npm --version
+
+RUN npm install -g \
+        "typescript@${TYPESCRIPT_VERSION}" \
+        "tsx@${TSX_VERSION}" \
+        "@vscode/vsce@${VSCE_VERSION}" \
+    && npm cache clean --force \
+    && tsc --version \
+    && tsx --version \
+    && vsce --version

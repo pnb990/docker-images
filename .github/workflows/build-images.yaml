@@ -109,6 +109,13 @@ jobs:
           # dev): the cache entry it needs is the one the previous job wrote.
           - name: "python3"
             variant: dev
+          - name: "node"
+            variant: base
+          - name: "node"
+            variant: ci
+          # Right after `ci`, whose layers it extends.
+          - name: "node"
+            variant: dev
 
     steps:
       - name: Debug matrix

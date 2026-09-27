@@ -30,6 +30,9 @@ features:
   new_git: "new_git.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
+  # Node LTS from the official tarball into /usr/local, plus typescript, tsx
+  # and @vscode/vsce installed globally. Shadows the apt node of ci-runtime.
+  node: "node.j2"
 
 # An image is a base image plus, per variant, an ordered list of features.
 #
@@ -120,3 +123,17 @@ images:
       # (can-utils, libusb) and the bench sudoers rule stay in the project's
       # postCreate, not here: this image is meant to stay generic.
       dev: [locale, python, uv, ci-runtime, build, dev, new_git]
+  # JavaScript/TypeScript projects and VS Code extensions (pi-test-bench's
+  # dashboard and vscode-ext). `node` comes before `ci-runtime` so that `base`
+  # stays an exact prefix of `ci`; ci-runtime's apt node is still installed,
+  # the runner does not care which one it gets, and /usr/local/bin wins on
+  # PATH for everything else.
+  node:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, node]
+      ci: [locale, node, ci-runtime]
+      # Devcontainer variant, same recipe as python3's: `ci` plus `build` (for
+      # native addons) and `dev` (interactive shell, sudo, the `dev` user),
+      # then new_git. `ci` stays an exact prefix.
+      dev: [locale, node, ci-runtime, build, dev, new_git]
