@@ -58,5 +58,20 @@
         "name": "node",
         "variant": "dev",
         "file": "node.dev.Dockerfile"
+    },
+    {
+        "name": "fw-xtensa-lx106-esp-2020r3",
+        "variant": "base",
+        "file": "fw-xtensa-lx106-esp-2020r3.base.Dockerfile"
+    },
+    {
+        "name": "fw-xtensa-lx106-esp-2020r3",
+        "variant": "ci",
+        "file": "fw-xtensa-lx106-esp-2020r3.ci.Dockerfile"
+    },
+    {
+        "name": "fw-xtensa-lx106-esp-2020r3",
+        "variant": "dev",
+        "file": "fw-xtensa-lx106-esp-2020r3.dev.Dockerfile"
     }
 ]

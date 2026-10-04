@@ -33,6 +33,10 @@ features:
   # Node LTS from the official tarball into /usr/local, plus typescript, tsx
   # and @vscode/vsce installed globally. Shadows the apt node of ci-runtime.
   node: "node.j2"
+  # ESP8266 firmware: Espressif's xtensa-lx106-elf toolchain, ESP8266_RTOS_SDK
+  # pinned by commit, and the SDK's python tooling on its own uv-managed
+  # interpreter, reached through an `idf.py` wrapper. amd64 only.
+  xtensa-lx106: "xtensa-lx106.j2"
 
 # An image is a base image plus, per variant, an ordered list of features.
 #
@@ -137,3 +141,12 @@ images:
       # native addons) and `dev` (interactive shell, sudo, the `dev` user),
       # then new_git. `ci` stays an exact prefix.
       dev: [locale, node, ci-runtime, build, dev, new_git]
+  # ESP8266 firmware (wifi-nic's coprocessor). Same layout as the arm image:
+  # `base` is a prefix of `ci`, a prefix of `dev`, so the toolchain and SDK
+  # layers are shared by the three variants.
+  fw-xtensa-lx106-esp-2020r3:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, build, python, uv, xtensa-lx106]
+      ci: [locale, build, python, uv, xtensa-lx106, ci-runtime]
+      dev: [locale, build, python, uv, xtensa-lx106, ci-runtime, dev, new_git]

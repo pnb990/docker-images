@@ -116,6 +116,13 @@ jobs:
           # Right after `ci`, whose layers it extends.
           - name: "node"
             variant: dev
+          - name: "fw-xtensa-lx106-esp-2020r3"
+            variant: base
+          - name: "fw-xtensa-lx106-esp-2020r3"
+            variant: ci
+          # Right after `ci`, whose layers it extends.
+          - name: "fw-xtensa-lx106-esp-2020r3"
+            variant: dev
 
     steps:
       - name: Debug matrix
