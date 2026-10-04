@@ -47,14 +47,24 @@ RUN [ "$(dpkg --print-architecture)" = amd64 ] \
     && rm -f "${TARBALL}" \
     && xtensa-lx106-elf-gcc --version
 
-# Shallow fetch of the one pinned commit. .git is kept: the SDK derives its
-# version string from `git describe`.
+# Shallow fetch of the one pinned commit.
+#
+# The SDK compiles its version (IDF_VER, what esp_get_idf_version() returns)
+# from version.txt when present, else from `git describe`, which fails here
+# twice: the clone has no tag, and the tree belongs to root while builds run
+# as `dev`, which git refuses ("dubious ownership"). The firmware then
+# reported "-128-NOTFOUND". version.txt names the pinned commit instead, and
+# safe.directory keeps the SDK's other git calls (submodule check) working
+# for any user. '*' rather than the SDK path: each submodule is a repository
+# of its own, and a build image has no other user to protect against.
 RUN git init -q ${IDF_PATH} \
     && cd ${IDF_PATH} \
     && git remote add origin https://github.com/espressif/ESP8266_RTOS_SDK.git \
     && git fetch -q --depth 1 origin ${ESP8266_RTOS_SDK_COMMIT} \
     && git checkout -q FETCH_HEAD \
-    && git submodule update -q --init --recursive --depth 1
+    && git submodule update -q --init --recursive --depth 1 \
+    && echo "master-$(git rev-parse --short=12 HEAD)" > version.txt \
+    && git config --system --add safe.directory '*'
 
 # The SDK's python tooling gets its own interpreter, a uv-managed one, so
 # that it neither depends on nor breaks with Debian's python3. Its
@@ -75,11 +85,13 @@ RUN printf '#!/bin/sh\nexec "%s/bin/python" "%s/tools/idf.py" "$@"\n' \
     && chmod 0755 /usr/local/bin/idf.py
 
 # Proves the whole chain (toolchain, SDK, interpreter, cmake, ninja) before
-# the image is published: an image that cannot build hello_world is not
-# pushed.
+# the image is published: an image that cannot build hello_world, or whose
+# firmware does not carry the SDK version, is not pushed.
 RUN cp -r ${IDF_PATH}/examples/get-started/hello_world /tmp/hello_world \
     && cd /tmp/hello_world \
     && idf.py build > /tmp/hello_world.log 2>&1 \
         || { tail -50 /tmp/hello_world.log; exit 1; } \
     && ls -l build/hello-world.bin \
+    && grep -qaF "$(cat ${IDF_PATH}/version.txt)" build/hello-world.bin \
+        || { echo "IDF_VER missing from the firmware" >&2; exit 1; } \
     && rm -rf /tmp/hello_world /tmp/hello_world.log
