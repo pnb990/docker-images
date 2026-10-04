@@ -27,8 +27,8 @@ Model: features, images, variants
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
 `python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`,
-`x11`, `pyqt6`, `node`). It installs what it needs itself, so it can be
-reused by any image.
+`x11`, `pyqt6`, `node`, `xtensa-lx106`). It installs what it needs itself,
+so it can be reused by any image.
 
 An **image** picks a base image, and each of its **variants** lists the
 features to stack, in order:
@@ -115,6 +115,17 @@ tarball (checksum verified) into `/usr/local`, plus `typescript`, `tsx` and
 out of support since April 2026, which is why the apt package is not enough.
 `ci` still carries `ci-runtime`'s apt node, shadowed on `PATH`. Its `dev`
 variant follows `python3:dev`: `ci` plus `build`, `dev` and `new_git`.
+
+The `fw-xtensa-lx106-esp-2020r3` image builds ESP8266 firmware. Its
+`xtensa-lx106` feature installs Espressif's toolchain (checksum verified
+against the SDK's own `tools/tools.json`) and ESP8266_RTOS_SDK pinned by
+commit -- its last tag, v3.4, dates from 2021 while master still gets fixes.
+The SDK's python tooling runs on its own uv-managed interpreter in
+`$IDF_PYTHON_ENV_PATH`, reached through `/usr/local/bin/idf.py`, so it never
+mixes with Debian's `python3` or a project's uv environment; its one extra pin
+is `setuptools<80`, since the SDK imports `pkg_resources`. The image build
+compiles the SDK's `hello_world`, so a broken chain is never pushed.
+Espressif publishes the toolchain for x86 only: the image is amd64-only.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come
