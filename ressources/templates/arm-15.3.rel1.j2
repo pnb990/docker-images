@@ -1,0 +1,14 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+{#
+    From 15.3.rel1 on, Arm publishes the toolchain on its GitLab package
+    registry only; the armkeil blob used for 13.2.rel1 has none of it.
+    Checksum from the .sha256asc published next to the tarball.
+#}
+{% set arm_version = "15.3.rel1" %}
+{% set arm_dl_link = "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/${ARM_TOOLCHAIN_VERSION}/arm-gnu-toolchain-${ARM_TOOLCHAIN_VERSION}-x86_64-arm-none-eabi.tar.xz" %}
+{% set arm_sha256 = "563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa" %}
+{% include "arm-none-eabi.j2" %}

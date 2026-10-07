@@ -1,0 +1,12 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+{#
+    No checksum: adding one would change this layer and force the 1.2 GB
+    rebuild and re-push of every 13.2.rel1 variant.
+#}
+{% set arm_version = "13.2.rel1" %}
+{% set arm_dl_link = "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/${ARM_TOOLCHAIN_VERSION}/binrel/arm-gnu-toolchain-${ARM_TOOLCHAIN_VERSION}-x86_64-arm-none-eabi.tar.xz" %}
+{% include "arm-none-eabi.j2" %}
