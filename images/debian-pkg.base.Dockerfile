@@ -32,7 +32,9 @@ ENV LANG=en_US.UTF-8 \
 # -------------------------------------------------------------------
 # feature: debpkg
 # -------------------------------------------------------------------
-# Build and check a Debian package: dpkg-buildpackage, debhelper, lintian.
+# Build and check a Debian package: dpkg-buildpackage, debhelper, lintian,
+# and autopkgtest for the package's own checks of the installed package
+# (debian/tests/, run with the `null` backend inside the job's container).
 # build-essential is not optional even for an Architecture: all package --
 # dpkg-checkbuilddeps always requires it, and --no-install-recommends does
 # not bring it along.
@@ -45,6 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         debhelper \
         dpkg-dev \
         lintian \
+        autopkgtest \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------------------------------------------

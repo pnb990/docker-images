@@ -136,9 +136,11 @@ Espressif publishes the toolchain for x86 only: the image is amd64-only.
 The `debian-pkg` image builds and checks Debian packages, for the
 `deb-build` workflow of soft-lib/ci. Its `debpkg` feature installs
 `build-essential` (required by `dpkg-buildpackage` even for an
-`Architecture: all` package), `debhelper`, `dpkg-dev` and `lintian`. A
-package's own Build-Depends stay out of the image: the job installs them
-from its `debian/control` with `apt-get build-dep -y ./`. Two variants,
+`Architecture: all` package), `debhelper`, `dpkg-dev`, `lintian` and
+`autopkgtest` (the package's own `debian/tests/`, run on the installed
+package). A package's own Build-Depends stay out of the image: the job
+installs them from its `debian/control` with `apt-get build-dep -y ./`.
+Two variants,
 `base` and `ci`; no `dev` until a project needs one.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
