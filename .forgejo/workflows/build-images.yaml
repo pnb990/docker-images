@@ -74,77 +74,42 @@ jobs:
     #   - prepare
 
     strategy:
-      # Sequential on purpose: `base` populates the build cache that `ci` and
-      # `dev` then reuse, which is what keeps the 1.2 GB toolchain layer
-      # shared between the three variants instead of pushed three times.
-      max-parallel: 1
-
+      # One job per image, its variants built in order inside it. The order
+      # used to come from `max-parallel: 1` over (name, variant) pairs, but the
+      # runner does not honour it: run 3443 built dev, dev-x11, dev-pyqt6 and
+      # doc of the same image at once, each one compiling git again, none
+      # finding the cache entry the previous variant was meant to write. A loop
+      # in one job is an order nothing can override, and its single builder
+      # shares the common prefix through its local cache, with no registry
+      # round trip.
+      #
+      # Two images share no layer, so their jobs may run side by side.
       matrix:
-        # Explicit pairs, not a cross product: the two images do not share the
-        # same variant set (python3 has no arm-derived dev-x11/dev-pyqt6/doc).
-        # The pairs are the `name`/`variant` fields of images/images_list.json;
+        # `variants` is in build order: a variant comes after the one whose
+        # layers it extends (dev-x11 after dev, dev-pyqt6 after dev-x11). The
+        # entries are the `name`/`variant` fields of images/images_list.json;
         # keep them in sync (a dynamic matrix needs a `prepare` job, see the
         # commented block above).
         include:
           - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: base
-          - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: ci
-          - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: dev
-          # Right after `dev`, whose layers it extends: the cache entry it
-          # needs is the one the previous job has just written.
-          - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: dev-x11
-          # Extends dev-x11, so it follows it for the same reason.
-          - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: dev-pyqt6
-          - name: "fw-arm-none-eabi-13.2.rel1"
-            variant: doc
+            variants: "base ci dev dev-x11 dev-pyqt6 doc"
           - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: base
-          - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: ci
-          - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: dev
-          - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: dev-x11
-          - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: dev-pyqt6
-          - name: "fw-arm-none-eabi-15.3.rel1"
-            variant: doc
+            variants: "base ci dev dev-x11 dev-pyqt6 doc"
+          # python3 has no arm-derived dev-x11/dev-pyqt6/doc.
           - name: "python3"
-            variant: base
-          - name: "python3"
-            variant: ci
-          # Right after `ci`, whose layers it extends (ci is an exact prefix of
-          # dev): the cache entry it needs is the one the previous job wrote.
-          - name: "python3"
-            variant: dev
+            variants: "base ci dev"
           - name: "node"
-            variant: base
-          - name: "node"
-            variant: ci
-          # Right after `ci`, whose layers it extends.
-          - name: "node"
-            variant: dev
+            variants: "base ci dev"
           - name: "fw-xtensa-lx106-esp-2020r3"
-            variant: base
-          - name: "fw-xtensa-lx106-esp-2020r3"
-            variant: ci
-          # Right after `ci`, whose layers it extends.
-          - name: "fw-xtensa-lx106-esp-2020r3"
-            variant: dev
+            variants: "base ci dev"
           - name: "debian-pkg"
-            variant: base
-          - name: "debian-pkg"
-            variant: ci
+            variants: "base ci"
 
     steps:
       - name: Debug matrix
         run: |
           echo "matrix.name=${{ matrix.name }}"
-          echo "matrix.variant=${{ matrix.variant }}"
+          echo "matrix.variants=${{ matrix.variants }}"
 
       # buildx keeps its builder state in $DOCKER_CONFIG/buildx, and the login
       # writes its credentials there. Every step must see the same directory:
@@ -158,7 +123,7 @@ jobs:
         run: echo "DOCKER_CONFIG=${RUNNER_TEMP:-/tmp}/docker" >> "$FORGEJO_ENV"
 
       # fetch-depth 0, the full history, and it is not an optimisation to
-      # revisit: the step below asks `git log -- <file>` which commit last
+      # revisit: the build step asks `git log -- <file>` which commit last
       # touched a Dockerfile, and that question needs commits to walk back
       # through. At the default depth of 1 the clone holds exactly HEAD, so
       # the only answer it can give is HEAD -- which is what happened for
@@ -173,40 +138,38 @@ jobs:
       # docker-container, not the default `docker` driver: exporting a
       # registry cache is only supported by the former.
       #
-      # `id` so the cleanup step at the end of the job can name the builder
-      # this created: the action generates a fresh `builder-<uuid>` per job
-      # and only its own outputs know which one.
+      # `id` so the build step can name this builder, and the cleanup step at
+      # the end of the job remove it: the action generates a fresh
+      # `builder-<uuid>` per job and only its own outputs know which one.
       - name: Setup Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
 
-      - name: Get commit hash for Dockerfile
-        id: file_commit
+      - name: Login to Docker Hubs
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      # A shell loop rather than docker/build-push-action, which builds one
+      # image per step and a step cannot be repeated over a list.
+      - name: Build & Push images
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ matrix.name }}
+          VARIANTS: ${{ matrix.variants }}
+          BUILDER: ${{ steps.buildx.outputs.name }}
         run: |
-          set -e
+          set -euo pipefail
 
-          file="images/${{ matrix.name }}.${{ matrix.variant }}.Dockerfile"
+          repo="$IMAGE_NAMESPACE/$IMAGE_NAME"
 
-          # The commit that last touched this Dockerfile, not HEAD: it is the
-          # identity of the image content, so the immutable `-<commit>` tag
-          # stays the same across pushes that do not change the image.
-          file_commit=$(git log -n 1 --format=%H -- "$file")
-          # Two forms of the same commit date, one per consumer, and both
-          # taken from the commit rather than from `date`: a build time would
-          # change on every rebuild and destroy the very property the line
-          # above exists for.
-          #
-          #   file_date      YYYYMMDD, for the image tag -- a tag may not
-          #                  contain ':' or '+', and it is read by eye;
-          #   file_date_iso  RFC 3339, for /etc/image-info and for the
-          #                  org.opencontainers.image.created label, which the
-          #                  OCI spec defines as an RFC 3339 date-time.
-          file_date=$(git log -n 1 --format=%cs "$file_commit" | tr -d '-')
-          file_date_iso=$(git log -n 1 --format=%cI "$file_commit")
-          branch_head=$(git rev-parse HEAD)
-          branch_name="$FORGEJO_REF_NAME"
+          # A docker tag cannot contain a slash, and branch names do:
+          # `tmp/review_image_building` would give the invalid tag
+          # `base-tmp/review_image_building`.
+          branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
 
           # The moving tags describe what the default branch currently says an
           # image is, so the only question is which branch is building. It used
@@ -215,108 +178,101 @@ jobs:
           # `-latest` frozen on the previous image forever, and a work branch
           # whose head commit did touch a Dockerfile published `-latest` from
           # outside the default branch.
-          if [ "$branch_name" = "$DEFAULT_BRANCH" ]; then
+          if [ "$FORGEJO_REF_NAME" = "$DEFAULT_BRANCH" ]; then
             is_latest=true
           else
             is_latest=false
           fi
 
-          echo "file_commit=$file_commit" >> "$FORGEJO_OUTPUT"
-          echo "file_date=$file_date" >> "$FORGEJO_OUTPUT"
-          echo "file_date_iso=$file_date_iso" >> "$FORGEJO_OUTPUT"
-          echo "branch_name=$branch_name" >> "$FORGEJO_OUTPUT"
-          echo "is_latest=$is_latest" >> "$FORGEJO_OUTPUT"
-          echo "dockerfile=$file" >> "$FORGEJO_OUTPUT"
+          echo "Branch head    : $(git rev-parse HEAD)"
+          echo "Branch         : $FORGEJO_REF_NAME"
+          echo "Default branch : $DEFAULT_BRANCH"
+          echo "Is latest      : $is_latest"
 
-          echo "Dockerfile commit : $file_commit"
-          echo "Dockerfile date   : $file_date_iso"
-          echo "Branch head       : $branch_head"
-          echo "Branch            : $branch_name"
-          echo "Default branch    : $DEFAULT_BRANCH"
-          echo "Is latest         : $is_latest"
+          for variant in $VARIANTS; do
+            file="images/$IMAGE_NAME.$variant.Dockerfile"
 
-      - name: Set image tags
-        id: img
-        run: |
-          set -e
+            # The commit that last touched this Dockerfile, not HEAD: it is
+            # the identity of the image content, so the immutable `-<commit>`
+            # tag stays the same across pushes that do not change the image.
+            file_commit=$(git log -n 1 --format=%H -- "$file")
+            # Two forms of the same commit date, one per consumer, and both
+            # taken from the commit rather than from `date`: a build time
+            # would change on every rebuild and destroy the very property the
+            # line above exists for.
+            #
+            #   file_date      YYYYMMDD, for the image tag -- a tag may not
+            #                  contain ':' or '+', and it is read by eye;
+            #   file_date_iso  RFC 3339, for /etc/image-info and for the
+            #                  org.opencontainers.image.created label, which
+            #                  the OCI spec defines as an RFC 3339 date-time.
+            file_date=$(git log -n 1 --format=%cs "$file_commit" | tr -d '-')
+            file_date_iso=$(git log -n 1 --format=%cI "$file_commit")
 
-          name="${{ matrix.name }}"
-          variant="${{ matrix.variant }}"
-          commit="${{ steps.file_commit.outputs.file_commit }}"
-          date="${{ steps.file_commit.outputs.file_date }}"
-
-          repo="$IMAGE_NAMESPACE/$name"
-
-          # A docker tag cannot contain a slash, and branch names do:
-          # `tmp/review_image_building` would give the invalid tag
-          # `base-tmp/review_image_building`.
-          branch=$(printf '%s' "$FORGEJO_REF_NAME" | tr '/' '-')
-
-          # Four kinds of tag:
-          #   -<date>-<commit>  immutable, what consumers pin;
-          #   -<commit>         the same image, without the date, kept so the
-          #                     pins written before the date existed keep
-          #                     resolving;
-          #   -<branch>         per branch, so a work branch can be tried out;
-          #   -latest and the bare <variant> alias, moving, default branch
-          #                     only -- a work branch must never be able to
-          #                     move what the other repositories consume.
-          #
-          # The date is there because a commit hash has no order. Two pins
-          # cannot be compared by eye, and the question a pin raises is always
-          # "am I behind?" -- which `ci-20260822-53142d0...` answers at a
-          # glance and `ci-53142d0...` does not. It is the commit's own date,
-          # so an unchanged image keeps the same tag, exactly like the hash.
-          {
-            echo "tags<<EOF"
-            echo "$repo:${variant}-$branch"
-            echo "$repo:${variant}-${date}-$commit"
-            echo "$repo:${variant}-$commit"
-            if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
-              echo "$repo:${variant}"
-              echo "$repo:${variant}-latest"
+            # Four kinds of tag:
+            #   -<date>-<commit>  immutable, what consumers pin;
+            #   -<commit>         the same image, without the date, kept so
+            #                     the pins written before the date existed
+            #                     keep resolving;
+            #   -<branch>         per branch, so a work branch can be tried
+            #                     out;
+            #   -latest and the bare <variant> alias, moving, default branch
+            #                     only -- a work branch must never be able to
+            #                     move what the other repositories consume.
+            #
+            # The date is there because a commit hash has no order. Two pins
+            # cannot be compared by eye, and the question a pin raises is
+            # always "am I behind?" -- which `ci-20260822-53142d0...` answers
+            # at a glance and `ci-53142d0...` does not. It is the commit's own
+            # date, so an unchanged image keeps the same tag, exactly like the
+            # hash.
+            tags=(
+              "$repo:${variant}-$branch"
+              "$repo:${variant}-${file_date}-$file_commit"
+              "$repo:${variant}-$file_commit"
+            )
+            if [ "$is_latest" = true ]; then
+              tags+=("$repo:${variant}" "$repo:${variant}-latest")
             fi
-            echo "EOF"
-          } >> "$FORGEJO_OUTPUT"
 
-          echo "tags:"
-          echo "  $repo:${variant}-$branch"
-          echo "  $repo:${variant}-${date}-$commit"
-          echo "  $repo:${variant}-$commit"
-          if [ "${{ steps.file_commit.outputs.is_latest }}" = 'true' ]; then
-            echo "  $repo:${variant}"
-            echo "  $repo:${variant}-latest"
-          fi
+            echo "::group::$IMAGE_NAME:$variant"
+            echo "Dockerfile        : $file"
+            echo "Dockerfile commit : $file_commit"
+            echo "Dockerfile date   : $file_date_iso"
+            printf 'tag               : %s\n' "${tags[@]}"
 
-      - name: Login to Docker Hubs
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+            tag_args=()
+            for tag in "${tags[@]}"; do
+              tag_args+=(--tag "$tag")
+            done
 
-      - name: Build & Push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ steps.file_commit.outputs.dockerfile }}
-          push: true
-          tags: ${{ steps.img.outputs.tags }}
-          # Stamped into /etc/image-info by the last layer of every Dockerfile.
-          # Without it a job running on a floating tag leaves no trace of the
-          # image it ran in, and a green run cannot be turned back into a pin.
-          build-args: |
-            IMAGE_COMMIT=${{ steps.file_commit.outputs.file_commit }}
-            IMAGE_DATE=${{ steps.file_commit.outputs.file_date_iso }}
-          # Identical instructions do not produce identical layers: a rebuilt
-          # layer gets a fresh digest and is stored again. Only a cache hit
-          # makes buildkit reuse the very same blob, so the variants share
-          # their common prefix through this cache, one entry per image name.
-          cache-from: >-
-            type=registry,ref=${{ env.IMAGE_NAMESPACE }}/${{
-            matrix.name }}:buildcache
-          cache-to: >-
-            type=registry,mode=max,ref=${{ env.IMAGE_NAMESPACE }}/${{
-            matrix.name }}:buildcache
+            # IMAGE_COMMIT/IMAGE_DATE are stamped into /etc/image-info by the
+            # last layer of every Dockerfile. Without them a job running on a
+            # floating tag leaves no trace of the image it ran in, and a green
+            # run cannot be turned back into a pin.
+            #
+            # One registry cache entry per variant: a `mode=max` export holds
+            # the layers of that one build, so a single entry per image was
+            # overwritten by each variant in turn and the next run only found
+            # the last one's. Within this job the variants already share their
+            # prefix through the builder's local cache; the registry entry is
+            # what carries it to the next run. Identical instructions do not
+            # produce identical layers -- a rebuilt layer gets a fresh digest
+            # and is stored again -- so a cache hit is what keeps the variants
+            # on the very same blobs.
+            docker buildx build \
+              --builder "$BUILDER" \
+              --file "$file" \
+              "${tag_args[@]}" \
+              --build-arg "IMAGE_COMMIT=$file_commit" \
+              --build-arg "IMAGE_DATE=$file_date_iso" \
+              --attest "type=provenance,mode=max,builder-id=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              --cache-from "type=registry,ref=$repo:buildcache-$variant" \
+              --cache-to "type=registry,mode=max,ref=$repo:buildcache-$variant" \
+              --push \
+              .
+            echo "::endgroup::"
+          done
 
       # Every job creates its own builder above, and each one costs a
       # buildkitd container plus a `buildx_buildkit_<name>_state` volume. The

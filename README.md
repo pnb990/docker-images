@@ -195,10 +195,10 @@ Adding a feature or a variant
    `{# ... #}` comment, and make it install its own dependencies.
 2. Declare it under `features:` in `config/default/config.yaml`, then add it
    to the variants that need it, keeping the common prefix first.
-3. If you add a variant, add the matching `name`/`variant` pair to the matrix
-   of `.forgejo/workflows/build-images.yaml`, right after the variant whose
-   layers it extends: the matrix runs sequentially and each job builds on the
-   cache the previous one wrote.
+3. If you add a variant, add it to the `variants` list of its image in the
+   matrix of `.forgejo/workflows/build-images.yaml`, right after the variant
+   whose layers it extends: one job builds an image's variants in that order,
+   in a single builder, so each one reuses the layers of those before it.
 4. `uv run python3 ./src/main.py`, check the diff under `images/`, commit both
    the template and the generated files. With the hook installed, forgetting
    this step stops the commit rather than the CI.
