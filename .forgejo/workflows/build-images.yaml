@@ -135,6 +135,10 @@ jobs:
           # Right after `ci`, whose layers it extends.
           - name: "fw-xtensa-lx106-esp-2020r3"
             variant: dev
+          - name: "debian-pkg"
+            variant: base
+          - name: "debian-pkg"
+            variant: ci
 
     steps:
       - name: Debug matrix

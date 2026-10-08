@@ -27,7 +27,7 @@ Model: features, images, variants
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
 `python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`, `ci-runtime`,
-`dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`). It installs what it
+`dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`, `debpkg`). It installs what it
 needs itself, so it can be reused by any image.
 
 The two ARM toolchains are two features and two images,
@@ -132,6 +132,14 @@ mixes with Debian's `python3` or a project's uv environment; its one extra pin
 is `setuptools<80`, since the SDK imports `pkg_resources`. The image build
 compiles the SDK's `hello_world`, so a broken chain is never pushed.
 Espressif publishes the toolchain for x86 only: the image is amd64-only.
+
+The `debian-pkg` image builds and checks Debian packages, for the
+`deb-build` workflow of soft-lib/ci. Its `debpkg` feature installs
+`build-essential` (required by `dpkg-buildpackage` even for an
+`Architecture: all` package), `debhelper`, `dpkg-dev` and `lintian`. A
+package's own Build-Depends stay out of the image: the job installs them
+from its `debian/control` with `apt-get build-dep -y ./`. Two variants,
+`base` and `ci`; no `dev` until a project needs one.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come

@@ -1,0 +1,22 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: debpkg
+# -------------------------------------------------------------------
+# Build and check a Debian package: dpkg-buildpackage, debhelper, lintian.
+# build-essential is not optional even for an Architecture: all package --
+# dpkg-checkbuilddeps always requires it, and --no-install-recommends does
+# not bring it along.
+#
+# A package's own Build-Depends are not here: the job installs them from its
+# debian/control (`apt-get build-dep -y ./`), which keeps this image generic.
+# devscripts and equivs are left out on purpose, heavy for what they add.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        debhelper \
+        dpkg-dev \
+        lintian \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
