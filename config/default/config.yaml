@@ -12,7 +12,8 @@ features:
   build: "build.j2"
   python: "python.j2"
   uv: "uv.j2"
-  arm-13.2.rel1: "arm-none-eabi.j2"
+  arm-13.2.rel1: "arm-13.2.rel1.j2"
+  arm-15.3.rel1: "arm-15.3.rel1.j2"
   doxygen: "doxygen.j2"
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
@@ -112,6 +113,56 @@ images:
       # projects is a target of their firmware CMake project: reaching it
       # means configuring that project, which needs arm-none-eabi-gcc.
       doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
+  # Same layout and variants as 13.2.rel1, toolchain aside. Kept side by side
+  # so that each project moves to 15.3.rel1 when it chooses to.
+  fw-arm-none-eabi-15.3.rel1:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, build, python, uv, arm-15.3.rel1]
+      ci: [locale, build, python, uv, arm-15.3.rel1, ci-runtime]
+      dev:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-15.3.rel1,
+          ci-runtime,
+          dev,
+          new_git,
+          clang,
+          jlink,
+        ]
+      dev-x11:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-15.3.rel1,
+          ci-runtime,
+          dev,
+          new_git,
+          clang,
+          jlink,
+          x11,
+        ]
+      dev-pyqt6:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-15.3.rel1,
+          ci-runtime,
+          dev,
+          new_git,
+          clang,
+          jlink,
+          x11,
+          pyqt6,
+        ]
+      doc: [locale, build, python, uv, arm-15.3.rel1, ci-runtime, doxygen]
   python3:
     from: "debian:trixie-slim"
     variants:

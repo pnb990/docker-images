@@ -8,8 +8,15 @@
 # -------------------------------------------------------------------
 # The expensive layer, 1.2 GB. It must stay after every feature it shares
 # with the other variants, otherwise it is stored once per variant.
-ARG ARM_TOOLCHAIN_VERSION=13.2.rel1
-ARG ARM_DL_LINK=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/${ARM_TOOLCHAIN_VERSION}/binrel/arm-gnu-toolchain-${ARM_TOOLCHAIN_VERSION}-x86_64-arm-none-eabi.tar.xz
+{#
+    Not a feature by itself: included by one arm-<version>.j2 per toolchain
+    version, which sets arm_version, arm_dl_link and, optionally, arm_sha256.
+#}
+ARG ARM_TOOLCHAIN_VERSION={{ arm_version }}
+ARG ARM_DL_LINK={{ arm_dl_link }}
+{% if arm_sha256 is defined %}
+ARG ARM_TOOLCHAIN_SHA256={{ arm_sha256 }}
+{% endif %}
 
 ENV ARM_TOOLCHAIN_DIR=/opt/gnu_arm/${ARM_TOOLCHAIN_VERSION}
 ENV PATH=${ARM_TOOLCHAIN_DIR}/bin:$PATH
@@ -21,9 +28,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+{% if arm_sha256 is defined %}
+RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
+    && wget -qO /tmp/arm-toolchain.tar.xz ${ARM_DL_LINK} \
+    && echo "${ARM_TOOLCHAIN_SHA256}  /tmp/arm-toolchain.tar.xz" | sha256sum -c - \
+    && tar -xJf /tmp/arm-toolchain.tar.xz -C /tmp/arm-toolchain --strip-components=1 \
+    && mv /tmp/arm-toolchain/* ${ARM_TOOLCHAIN_DIR} \
+    && rm -rf /tmp/arm-toolchain /tmp/arm-toolchain.tar.xz \
+    && arm-none-eabi-gcc --version
+{% else %}
 RUN mkdir -p ${ARM_TOOLCHAIN_DIR} /tmp/arm-toolchain \
     && wget -qO- ${ARM_DL_LINK} | tar -xJ -C /tmp/arm-toolchain --strip-components=1 \
     && mv /tmp/arm-toolchain/* ${ARM_TOOLCHAIN_DIR} \
     && rm -rf /tmp/arm-toolchain
+{% endif %}
 
 ENV TOOLCHAIN_DEVCONTAINER_DIR=${ARM_TOOLCHAIN_DIR}

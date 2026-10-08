@@ -26,9 +26,15 @@ Model: features, images, variants
 ---------------------------------
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `build`,
-`python`, `uv`, `arm-13.2.rel1`, `doxygen`, `ci-runtime`, `dev`, `jlink`,
-`x11`, `pyqt6`, `node`, `xtensa-lx106`). It installs what it needs itself,
-so it can be reused by any image.
+`python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`, `ci-runtime`,
+`dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`). It installs what it
+needs itself, so it can be reused by any image.
+
+The two ARM toolchains are two features and two images,
+`fw-arm-none-eabi-13.2.rel1` and `fw-arm-none-eabi-15.3.rel1`, with the same
+variants: a project moves to the new toolchain by changing its image name.
+Both features include `arm-none-eabi.j2`; only 15.3.rel1 checks the tarball
+checksum, since adding one to 13.2.rel1 would rebuild its published layers.
 
 An **image** picks a base image, and each of its **variants** lists the
 features to stack, in order:
