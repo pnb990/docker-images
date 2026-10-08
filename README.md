@@ -20,7 +20,7 @@ Layout
 | `ressources/templates/*.j2` | one file per feature, plus the skeleton |
 | `src/main.py` | generator |
 | `images/*.Dockerfile` | **generated**, committed, consumed by the CI |
-| `.github/workflows/` | build and push, tests, REUSE lint |
+| `.forgejo/workflows/` | build and push, tests, REUSE lint |
 
 Model: features, images, variants
 ---------------------------------
@@ -182,7 +182,7 @@ Adding a feature or a variant
 2. Declare it under `features:` in `config/default/config.yaml`, then add it
    to the variants that need it, keeping the common prefix first.
 3. If you add a variant, add the matching `name`/`variant` pair to the matrix
-   of `.github/workflows/build-images.yaml`, right after the variant whose
+   of `.forgejo/workflows/build-images.yaml`, right after the variant whose
    layers it extends: the matrix runs sequentially and each job builds on the
    cache the previous one wrote.
 4. `uv run python3 ./src/main.py`, check the diff under `images/`, commit both
