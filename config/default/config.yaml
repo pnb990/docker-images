@@ -38,6 +38,9 @@ features:
   # pinned by commit, and the SDK's python tooling on its own uv-managed
   # interpreter, reached through an `idf.py` wrapper. amd64 only.
   xtensa-lx106: "xtensa-lx106.j2"
+  # Build and lint Debian packages: build-essential, debhelper, dpkg-dev,
+  # lintian. A package's own Build-Depends are installed by the job.
+  debpkg: "debpkg.j2"
 
 # An image is a base image plus, per variant, an ordered list of features.
 #
@@ -214,3 +217,10 @@ images:
           new_git,
           clang,
         ]
+  # Debian packages (yt-add-music-beet, then pi-test-bench), for the
+  # deb-build workflow of soft-lib/ci. No `dev` variant: nobody needs one yet.
+  debian-pkg:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, debpkg]
+      ci: [locale, debpkg, ci-runtime]

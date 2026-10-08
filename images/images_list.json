@@ -103,5 +103,15 @@
         "name": "fw-xtensa-lx106-esp-2020r3",
         "variant": "dev",
         "file": "fw-xtensa-lx106-esp-2020r3.dev.Dockerfile"
+    },
+    {
+        "name": "debian-pkg",
+        "variant": "base",
+        "file": "debian-pkg.base.Dockerfile"
+    },
+    {
+        "name": "debian-pkg",
+        "variant": "ci",
+        "file": "debian-pkg.ci.Dockerfile"
     }
 ]
