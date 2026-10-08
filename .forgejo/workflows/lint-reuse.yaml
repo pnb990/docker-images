@@ -19,7 +19,7 @@ jobs:
     # Pinned to a commit, like the image below: a change in soft-lib/ci breaks
     # nothing here until this line is bumped, which is a reviewable commit and
     # a git revert away.
-    uses: soft-lib/ci/.github/workflows/lint-reuse.yaml@56c61c009f0c3adea4c9ea57189bc215f1f69e11
+    uses: soft-lib/ci/.forgejo/workflows/lint-reuse.yaml@0adfe8a2f90a3f2927bfefeb43e3c9e9bf2018b3
     with:
       # See python-checks.yaml for why pinning one of this repository's own
       # images is a bootstrap and not a cycle.
