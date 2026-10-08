@@ -149,4 +149,17 @@ images:
     variants:
       base: [locale, build, python, uv, xtensa-lx106]
       ci: [locale, build, python, uv, xtensa-lx106, ci-runtime]
-      dev: [locale, build, python, uv, xtensa-lx106, ci-runtime, dev, new_git]
+      # clang for clang-format and clang-tidy, after new_git as in the arm
+      # image's dev variants.
+      dev:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          xtensa-lx106,
+          ci-runtime,
+          dev,
+          new_git,
+          clang,
+        ]
