@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-15.3.rel1
 # variant  : ci
-# features : locale -> build -> python -> uv -> arm-15.3.rel1 -> ci-runtime
+# features : locale -> build -> python -> uv -> arm-15.3.rel1 -> ci-runtime -> clang
 
 FROM debian:trixie-slim
 
@@ -118,6 +118,43 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
         file \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# feature: clang
+# -------------------------------------------------------------------
+# clang and its tooling (clang-tidy, clangd, clang-format), for the C
+# images: CI lints with them, and the editors of a devcontainer use the same
+# versions. `bear`, in `dev`, records the compile commands these tools read.
+#
+# From apt.llvm.org, not Debian: trixie ships LLVM 19, and the projects'
+# .clang-format use options of clang-format 20 and later (BinPackParameters:
+# OnePerLine). The versioned binaries are linked under their plain names in
+# /usr/local/bin, which precedes /usr/bin on PATH.
+#
+# Stacked right after `ci-runtime`, before `dev`, so it runs as root and
+# `ci` stays a prefix of every dev-derived variant.
+ARG CLANG_VERSION=21
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+    && curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+        -o /etc/apt/keyrings/apt.llvm.org.asc \
+    && . /etc/os-release \
+    && echo "deb [signed-by=/etc/apt/keyrings/apt.llvm.org.asc]" \
+        "http://apt.llvm.org/${VERSION_CODENAME}/" \
+        "llvm-toolchain-${VERSION_CODENAME}-${CLANG_VERSION} main" \
+        > /etc/apt/sources.list.d/apt.llvm.org.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        clang-${CLANG_VERSION} \
+        clang-tidy-${CLANG_VERSION} \
+        clang-format-${CLANG_VERSION} \
+        clangd-${CLANG_VERSION} \
+    && for tool in clang clang++ clang-tidy clang-format clangd; do \
+        ln -sf "/usr/bin/${tool}-${CLANG_VERSION}" "/usr/local/bin/${tool}"; \
+    done \
+    && clang-format --version \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------------------------------------------

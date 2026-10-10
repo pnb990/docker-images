@@ -6,21 +6,18 @@
 # -------------------------------------------------------------------
 # feature: clang
 # -------------------------------------------------------------------
-# clang and its tooling (clang-tidy, clangd, clang-format), for the editors
-# and linters of a devcontainer. `bear`, already in `dev`, records the
-# compile commands these tools read.
+# clang and its tooling (clang-tidy, clangd, clang-format), for the C
+# images: CI lints with them, and the editors of a devcontainer use the same
+# versions. `bear`, in `dev`, records the compile commands these tools read.
 #
 # From apt.llvm.org, not Debian: trixie ships LLVM 19, and the projects'
 # .clang-format use options of clang-format 20 and later (BinPackParameters:
 # OnePerLine). The versioned binaries are linked under their plain names in
 # /usr/local/bin, which precedes /usr/bin on PATH.
 #
-# Stacked after `dev`, which hands over a non-root image, so this feature
-# switches back to root itself and returns to the user `dev` created. Same
-# contract as `jlink` and `x11`.
-ARG USERNAME=dev
+# Stacked right after `ci-runtime`, before `dev`, so it runs as root and
+# `ci` stays a prefix of every dev-derived variant.
 ARG CLANG_VERSION=21
-USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -42,5 +39,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     done \
     && clang-format --version \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-USER ${USERNAME}
