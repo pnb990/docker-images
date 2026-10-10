@@ -45,9 +45,9 @@ images:
     from: "debian:trixie-slim"
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
-      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, dev]
-      doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
+      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, clang]
+      dev: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, clang, dev]
+      doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, clang, doxygen]
 ```
 
 The order matters twice:
@@ -66,7 +66,7 @@ Which variant to consume:
 | Variant | For |
 |---|---|
 | `base` | build only, no CI plumbing |
-| `ci` | jobs running under the Forgejo runner (node, git, ssh) |
+| `ci` | jobs running under the Forgejo runner (node, git, ssh), plus clang 21 (clang-format, clang-tidy) in the C images |
 | `dev` | devcontainers: probes, debuggers, non-root `dev` user |
 | `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |

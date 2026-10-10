@@ -17,6 +17,9 @@ features:
   doxygen: "doxygen.j2"
   ci-runtime: "ci-runtime.j2"
   dev: "dev.j2"
+  # clang 21 and its tooling (clang-tidy, clang-format, clangd). Stacked
+  # right after ci-runtime in every C image, so that CI lints with the same
+  # clang-format as the devcontainer.
   clang: "clang.j2"
   # SEGGER restricts the redistribution of the JLink binaries, which is why the
   # .deb was never baked into a layer. This feature instead ships
@@ -26,7 +29,7 @@ features:
   # pushable. That is what lets it sit in every `dev` variant below.
   jlink: "jlink.j2"
   # Newer git (>= 2.48) built from source, for relative-path worktree linking
-  # (Debian trixie ships 2.47). Like clang/jlink it switches back to root and
+  # (Debian trixie ships 2.47). Like jlink it switches back to root and
   # returns to the dev user, so it is safe to stack right after `dev`.
   new_git: "new_git.j2"
   x11: "x11.j2"
@@ -54,12 +57,12 @@ images:
     from: "debian:trixie-slim"
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
-      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime]
-      # new_git, clang then jlink are stacked right after `dev` in every
-      # dev-derived variant below, so `dev, new_git, clang, jlink` stays their
-      # common prefix and the layer sharing described above still holds. jlink
-      # adds no binaries, only the runtime installer, so it is cheap to share
-      # and safe to push.
+      ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, clang]
+      # clang closes `ci`, so every variant below starts with it. new_git then
+      # jlink are stacked right after `dev` in every dev-derived variant, so
+      # `dev, new_git, jlink` stays their common prefix and the layer sharing
+      # described above still holds. jlink adds no binaries, only the runtime
+      # installer, so it is cheap to share and safe to push.
       dev:
         [
           locale,
@@ -68,9 +71,9 @@ images:
           uv,
           arm-13.2.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
         ]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
@@ -86,9 +89,9 @@ images:
           uv,
           arm-13.2.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
           x11,
         ]
@@ -103,9 +106,9 @@ images:
           uv,
           arm-13.2.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
           x11,
           pyqt6,
@@ -116,14 +119,24 @@ images:
       # carries. It keeps the toolchain because the `doc` target of the
       # projects is a target of their firmware CMake project: reaching it
       # means configuring that project, which needs arm-none-eabi-gcc.
-      doc: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, doxygen]
+      doc:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-13.2.rel1,
+          ci-runtime,
+          clang,
+          doxygen,
+        ]
   # Same layout and variants as 13.2.rel1, toolchain aside. Kept side by side
   # so that each project moves to 15.3.rel1 when it chooses to.
   fw-arm-none-eabi-15.3.rel1:
     from: "debian:trixie-slim"
     variants:
       base: [locale, build, python, uv, arm-15.3.rel1]
-      ci: [locale, build, python, uv, arm-15.3.rel1, ci-runtime]
+      ci: [locale, build, python, uv, arm-15.3.rel1, ci-runtime, clang]
       dev:
         [
           locale,
@@ -132,9 +145,9 @@ images:
           uv,
           arm-15.3.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
         ]
       dev-x11:
@@ -145,9 +158,9 @@ images:
           uv,
           arm-15.3.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
           x11,
         ]
@@ -159,14 +172,24 @@ images:
           uv,
           arm-15.3.rel1,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
           jlink,
           x11,
           pyqt6,
         ]
-      doc: [locale, build, python, uv, arm-15.3.rel1, ci-runtime, doxygen]
+      doc:
+        [
+          locale,
+          build,
+          python,
+          uv,
+          arm-15.3.rel1,
+          ci-runtime,
+          clang,
+          doxygen,
+        ]
   python3:
     from: "debian:trixie-slim"
     variants:
@@ -203,9 +226,7 @@ images:
     from: "debian:trixie-slim"
     variants:
       base: [locale, build, python, uv, xtensa-lx106]
-      ci: [locale, build, python, uv, xtensa-lx106, ci-runtime]
-      # clang for clang-format and clang-tidy, after new_git as in the arm
-      # image's dev variants.
+      ci: [locale, build, python, uv, xtensa-lx106, ci-runtime, clang]
       dev:
         [
           locale,
@@ -214,9 +235,9 @@ images:
           uv,
           xtensa-lx106,
           ci-runtime,
+          clang,
           dev,
           new_git,
-          clang,
         ]
   # Debian packages (yt-add-music-beet, then pi-test-bench), for the
   # deb-build workflow of soft-lib/ci. No `dev` variant: nobody needs one yet.
