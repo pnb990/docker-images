@@ -240,9 +240,14 @@ images:
           new_git,
         ]
   # Debian packages (yt-add-music-beet, then pi-test-bench), for the
-  # deb-build workflow of soft-lib/ci. No `dev` variant: nobody needs one yet.
+  # deb-build workflow of soft-lib/ci.
   debian-pkg:
     from: "debian:trixie-slim"
     variants:
       base: [locale, debpkg]
       ci: [locale, debpkg, ci-runtime]
+      # Devcontainer variant: `ci` plus python and uv (the linters and test
+      # tools of a package written in Python), `dev` and new_git. No `build`:
+      # debpkg already brings build-essential, and a package builds with
+      # dpkg-buildpackage, not cmake. `ci` stays an exact prefix.
+      dev: [locale, debpkg, ci-runtime, python, uv, dev, new_git]

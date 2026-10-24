@@ -103,7 +103,7 @@ jobs:
           - name: "fw-xtensa-lx106-esp-2020r3"
             variants: "base ci dev"
           - name: "debian-pkg"
-            variants: "base ci"
+            variants: "base ci dev"
 
     steps:
       - name: Debug matrix

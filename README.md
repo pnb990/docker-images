@@ -140,8 +140,9 @@ The `debian-pkg` image builds and checks Debian packages, for the
 `autopkgtest` (the package's own `debian/tests/`, run on the installed
 package). A package's own Build-Depends stay out of the image: the job
 installs them from its `debian/control` with `apt-get build-dep -y ./`.
-Two variants,
-`base` and `ci`; no `dev` until a project needs one.
+The `dev` variant adds
+python, uv, the `dev` user and a newer git to `ci`, for the devcontainer of a
+package written in Python.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come

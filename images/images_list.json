@@ -113,5 +113,10 @@
         "name": "debian-pkg",
         "variant": "ci",
         "file": "debian-pkg.ci.Dockerfile"
+    },
+    {
+        "name": "debian-pkg",
+        "variant": "dev",
+        "file": "debian-pkg.dev.Dockerfile"
     }
 ]
