@@ -6,8 +6,8 @@
 # -------------------------------------------------------------------
 # feature: locale
 # -------------------------------------------------------------------
-# Kept first in every variant of every image: it is the layer all the images
-# share, so it must be identical everywhere.
+# Kept first in every variant of every image, followed by `systemd`: they are
+# the layers all the images share, so they must be identical everywhere.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         locales \
     && sed -i \
