@@ -1,0 +1,26 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: systemd
+# -------------------------------------------------------------------
+# Installed, not running: systemd is not PID 1 here, so nothing starts and
+# the containers behave as before. What it brings is the tooling every
+# distribution now relies on: systemctl, systemd-analyze, systemd-sysusers and
+# systemd-tmpfiles. A package's maintainer scripts find them (a unit's start
+# is skipped, since /run/systemd/system does not exist), and a test can check
+# its units with `systemd-analyze verify` and `systemctl is-enabled`. Running
+# it as PID 1 is soft-lib/docker-images#31.
+#
+# Right after `locale` in every variant of every image, so that every image
+# shares it: about 20 MB, cheaper than finding out later which ones need it.
+#
+# The install generates an /etc/machine-id, which would be baked into the
+# image and shared by every container. Emptied, as the Debian images ship it:
+# an empty file means "not initialised yet".
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        systemd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && : > /etc/machine-id

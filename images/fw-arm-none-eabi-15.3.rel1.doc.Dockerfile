@@ -7,15 +7,15 @@
 #
 # image    : fw-arm-none-eabi-15.3.rel1
 # variant  : doc
-# features : locale -> build -> python -> uv -> arm-15.3.rel1 -> ci-runtime -> clang -> doxygen
+# features : locale -> systemd -> build -> python -> uv -> arm-15.3.rel1 -> ci-runtime -> clang -> doxygen
 
 FROM debian:trixie-slim
 
 # -------------------------------------------------------------------
 # feature: locale
 # -------------------------------------------------------------------
-# Kept first in every variant of every image: it is the layer all the images
-# share, so it must be identical everywhere.
+# Kept first in every variant of every image, followed by `systemd`: they are
+# the layers all the images share, so they must be identical everywhere.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         locales \
     && sed -i \
@@ -28,6 +28,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
+
+# -------------------------------------------------------------------
+# feature: systemd
+# -------------------------------------------------------------------
+# Installed, not running: systemd is not PID 1 here, so nothing starts and
+# the containers behave as before. What it brings is the tooling every
+# distribution now relies on: systemctl, systemd-analyze, systemd-sysusers and
+# systemd-tmpfiles. A package's maintainer scripts find them (a unit's start
+# is skipped, since /run/systemd/system does not exist), and a test can check
+# its units with `systemd-analyze verify` and `systemctl is-enabled`. Running
+# it as PID 1 is soft-lib/docker-images#31.
+#
+# Right after `locale` in every variant of every image, so that every image
+# shares it: about 20 MB, cheaper than finding out later which ones need it.
+#
+# The install generates an /etc/machine-id, which would be baked into the
+# image and shared by every container. Emptied, as the Debian images ship it:
+# an empty file means "not initialised yet".
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        systemd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && : > /etc/machine-id
 
 # -------------------------------------------------------------------
 # feature: build
