@@ -67,7 +67,7 @@ Which variant to consume:
 |---|---|
 | `base` | build only, no CI plumbing |
 | `ci` | jobs running under the Forgejo runner (node, git, ssh), plus clang 21 (clang-format, clang-tidy) in the C images |
-| `dev` | devcontainers: probes, debuggers, non-root `dev` user |
+| `dev` | devcontainers: probes, debuggers, non-root `dev` user, git >= 2.48, the lifecycle scripts |
 | `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |
 | `dev-pyqt6` | `dev-x11` plus Qt 6 and its python bindings |
@@ -120,7 +120,7 @@ tarball (checksum verified) into `/usr/local`, plus `typescript`, `tsx` and
 `@vscode/vsce` globally, all pinned by `ARG`. Debian trixie ships Node 20,
 out of support since April 2026, which is why the apt package is not enough.
 `ci` still carries `ci-runtime`'s apt node, shadowed on `PATH`. Its `dev`
-variant follows `python3:dev`: `ci` plus `build`, `dev` and `new_git`.
+variant follows `python3:dev`: `ci` plus `build` and `dev`.
 
 The `fw-xtensa-lx106-esp-2020r3` image builds ESP8266 firmware. Its
 `xtensa-lx106` feature installs Espressif's toolchain (checksum verified
@@ -141,12 +141,40 @@ The `debian-pkg` image builds and checks Debian packages, for the
 package). A package's own Build-Depends stay out of the image: the job
 installs them from its `debian/control` with `apt-get build-dep -y ./`.
 The `dev` variant adds
-python, uv, the `dev` user and a newer git to `ci`, for the devcontainer of a
-package written in Python.
+python, uv and `dev` to `ci`, for the devcontainer of a package written in
+Python.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink` and `x11` do, and why they come
 last.
+
+**What `dev` gives a devcontainer.**
+
+Every variant that runs a devcontainer has `dev`, so it carries what each of
+them needs, instead of a feature that a new variant could forget:
+
+- **git >= 2.48**, built from source into `/usr/local` (Debian trixie ships
+  2.47), for relative worktree links: the devcontainer mounts the parent of
+  the workspace, and only relative links resolve on both sides.
+- **The lifecycle scripts**, from `ressources/devcontainer/` into
+  `/usr/local/share/devcontainer/`. They are versioned by the image tag that
+  each repository pins, instead of being copied into it:
+
+  | Script | Does |
+  |---|---|
+  | `post-create.sh` | checks the worktree links, sets up `XDG_RUNTIME_DIR` and the Claude Code volume, checks the submodules out, then sources `.devcontainer/project-install.sh` when the repository has one |
+  | `post-start.sh` | in a library, clones the coding rules and moves them to the commit its workflows call (RG27 of soft-lib/coding-rules) |
+  | `check-git-worktree.sh` | fails on an absolute worktree link, saying what to run on the host |
+  | `persist-claude-config.sh` | keeps the Claude Code login in the `claude-code-config` volume |
+
+  ```jsonc
+  // .devcontainer/devcontainer.json
+  "postCreateCommand": "/usr/local/share/devcontainer/post-create.sh ${containerWorkspaceFolder}",
+  "postStartCommand": "/usr/local/share/devcontainer/post-start.sh ${containerWorkspaceFolder}",
+  ```
+
+  They are the last layer of `dev`, so changing one rebuilds that layer and
+  the features stacked after `dev`, never git.
 
 The `jlink` feature is declared with **no variant using it**, and the template
 is kept for the same reason. There used to be a `dev-jlink` variant; it was

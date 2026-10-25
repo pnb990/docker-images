@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-13.2.rel1
 # variant  : dev-pyqt6
-# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> clang -> dev -> new_git -> jlink -> x11 -> pyqt6
+# features : locale -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> clang -> dev -> jlink -> x11 -> pyqt6
 
 FROM debian:trixie-slim
 
@@ -160,6 +160,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # switches back to root itself, the way `jlink` does. A CI variant built on
 # top of this one would run as a non-root user and its apt-get would fail.
 ARG USERNAME=dev
+ARG GIT_VERSION=2.53.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         sudo \
@@ -181,16 +182,6 @@ RUN useradd -m ${USERNAME} \
     && usermod -a -G dialout,plugdev ${USERNAME} \
     && mkdir -p /home/${USERNAME}/project
 
-LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
-    description="Devcontainer image, interactive development and debugging"
-
-USER ${USERNAME}
-ENV SHELL=/bin/bash
-CMD ["/bin/bash"]
-
-# -------------------------------------------------------------------
-# feature: new_git
-# -------------------------------------------------------------------
 # A newer git (>= 2.48) built from source, for relative-path git worktree
 # linking: worktrees keep working when the whole tree is relocated (e.g. the
 # repo is bind-mounted at a different path in a container). Debian trixie ships
@@ -199,16 +190,9 @@ CMD ["/bin/bash"]
 # Built into /usr/local, which precedes /usr/bin on PATH, so it shadows the apt
 # package without removing it (still needed for git-gui/gitk).
 #
-# Stacked after `dev`, which hands over a non-root image, so this feature
-# switches back to root itself and returns to the user `dev` created. Same
-# contract as `clang` and `jlink`.
-ARG USERNAME=dev
-ARG GIT_VERSION=2.53.0
-USER root
-
-# Build dependencies for git: compiler/make, plus curl (remote transport),
-# openssl (https/crypto) and zlib (packfile compression). NO_GETTEXT,
-# NO_TCLTK, NO_EXPAT and NO_RUST below drop the matching dependencies.
+# Build dependencies: compiler/make, plus curl (remote transport), openssl
+# (https/crypto) and zlib (packfile compression). NO_GETTEXT, NO_TCLTK,
+# NO_EXPAT and NO_RUST below drop the matching dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libcurl4-openssl-dev \
@@ -229,7 +213,19 @@ RUN wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz \
     && rm -f /tmp/git-${GIT_VERSION}.tar.gz \
     && rm -rf /tmp/git-${GIT_VERSION}
 
+# The lifecycle scripts every devcontainer.json calls, versioned by the image
+# tag instead of being copied into each repository. Last in the feature: they
+# change more often than anything above, and a change then rebuilds only this
+# layer and the features stacked after `dev`.
+COPY ressources/devcontainer/ /usr/local/share/devcontainer/
+RUN chmod 0755 /usr/local/share/devcontainer/*.sh
+
+LABEL maintainer="Pierre-Noel Bouteville <pnb990@gmail.com>" \
+    description="Devcontainer image, interactive development and debugging"
+
 USER ${USERNAME}
+ENV SHELL=/bin/bash
+CMD ["/bin/bash"]
 
 # -------------------------------------------------------------------
 # feature: jlink

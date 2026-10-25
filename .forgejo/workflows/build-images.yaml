@@ -192,10 +192,16 @@ jobs:
           for variant in $VARIANTS; do
             file="images/$IMAGE_NAME.$variant.Dockerfile"
 
-            # The commit that last touched this Dockerfile, not HEAD: it is
-            # the identity of the image content, so the immutable `-<commit>`
-            # tag stays the same across pushes that do not change the image.
-            file_commit=$(git log -n 1 --format=%H -- "$file")
+            # The commit that last touched this Dockerfile or a file it
+            # COPYs, not HEAD: it is the identity of the image content, so the
+            # immutable `-<commit>` tag stays the same across pushes that do
+            # not change the image. The Dockerfile alone is not enough: a
+            # change to a copied script alone would push a different image
+            # under the same immutable tag.
+            mapfile -t sources < <(awk '$1 == "COPY" {
+                for (i = 2; i < NF; i++) if ($i !~ /^--/) print $i
+              }' "$file")
+            file_commit=$(git log -n 1 --format=%H -- "$file" "${sources[@]}")
             # Two forms of the same commit date, one per consumer, and both
             # taken from the commit rather than from `date`: a build time
             # would change on every rebuild and destroy the very property the
