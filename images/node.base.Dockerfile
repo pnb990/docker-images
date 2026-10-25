@@ -40,7 +40,7 @@ ENV LANG=en_US.UTF-8 \
 # trust, and the checksum below is checked against nodejs.org's own list.
 # Installed into /usr/local, which precedes /usr/bin on PATH, so it shadows
 # the apt node that `ci-runtime` may bring without conflicting with it. Same
-# approach as `new_git`.
+# approach as the git built by `dev`.
 #
 # The global tools are for one-off use and quick checks; a project still pins
 # its own copies in package-lock.json and runs those through `npm ci`.

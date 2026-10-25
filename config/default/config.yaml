@@ -16,6 +16,9 @@ features:
   arm-15.3.rel1: "arm-15.3.rel1.j2"
   doxygen: "doxygen.j2"
   ci-runtime: "ci-runtime.j2"
+  # Everything a devcontainer needs: the interactive tools, the `dev` user, a
+  # git new enough for relative worktrees, and the lifecycle scripts every
+  # devcontainer.json calls (ressources/devcontainer/).
   dev: "dev.j2"
   # clang 21 and its tooling (clang-tidy, clang-format, clangd). Stacked
   # right after ci-runtime in every C image, so that CI lints with the same
@@ -28,10 +31,6 @@ features:
   # accepts the licence, so the image itself carries none of them and stays
   # pushable. That is what lets it sit in every `dev` variant below.
   jlink: "jlink.j2"
-  # Newer git (>= 2.48) built from source, for relative-path worktree linking
-  # (Debian trixie ships 2.47). Like jlink it switches back to root and
-  # returns to the dev user, so it is safe to stack right after `dev`.
-  new_git: "new_git.j2"
   x11: "x11.j2"
   pyqt6: "pyqt6.j2"
   # Node LTS from the official tarball into /usr/local, plus typescript, tsx
@@ -58,10 +57,10 @@ images:
     variants:
       base: [locale, build, python, uv, arm-13.2.rel1]
       ci: [locale, build, python, uv, arm-13.2.rel1, ci-runtime, clang]
-      # clang closes `ci`, so every variant below starts with it. new_git then
-      # jlink are stacked right after `dev` in every dev-derived variant, so
-      # `dev, new_git, jlink` stays their common prefix and the layer sharing
-      # described above still holds. jlink adds no binaries, only the runtime
+      # clang closes `ci`, so every variant below starts with it. jlink is
+      # stacked right after `dev` in every dev-derived variant, so `dev, jlink`
+      # stays their common prefix and the layer sharing described above still
+      # holds. jlink adds no binaries, only the runtime
       # installer, so it is cheap to share and safe to push.
       dev:
         [
@@ -73,7 +72,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
         ]
       # `dev` plus an X11 client stack and tkinter, for the GUI tools of the
@@ -91,7 +89,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
           x11,
         ]
@@ -108,7 +105,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
           x11,
           pyqt6,
@@ -147,7 +143,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
         ]
       dev-x11:
@@ -160,7 +155,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
           x11,
         ]
@@ -174,7 +168,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
           jlink,
           x11,
           pyqt6,
@@ -204,7 +197,7 @@ images:
       # layer up to and including ci-runtime. Project-specific packages
       # (can-utils, libusb) and the bench sudoers rule stay in the project's
       # postCreate, not here: this image is meant to stay generic.
-      dev: [locale, python, uv, ci-runtime, build, dev, new_git]
+      dev: [locale, python, uv, ci-runtime, build, dev]
   # JavaScript/TypeScript projects and VS Code extensions (pi-test-bench's
   # dashboard and vscode-ext). `node` comes before `ci-runtime` so that `base`
   # stays an exact prefix of `ci`; ci-runtime's apt node is still installed,
@@ -216,9 +209,9 @@ images:
       base: [locale, node]
       ci: [locale, node, ci-runtime]
       # Devcontainer variant, same recipe as python3's: `ci` plus `build` (for
-      # native addons) and `dev` (interactive shell, sudo, the `dev` user),
-      # then new_git. `ci` stays an exact prefix.
-      dev: [locale, node, ci-runtime, build, dev, new_git]
+      # native addons) and `dev` (interactive shell, sudo, the `dev` user).
+      # `ci` stays an exact prefix.
+      dev: [locale, node, ci-runtime, build, dev]
   # ESP8266 firmware (wifi-nic's coprocessor). Same layout as the arm image:
   # `base` is a prefix of `ci`, a prefix of `dev`, so the toolchain and SDK
   # layers are shared by the three variants.
@@ -237,7 +230,6 @@ images:
           ci-runtime,
           clang,
           dev,
-          new_git,
         ]
   # Debian packages (yt-add-music-beet, then pi-test-bench), for the
   # deb-build workflow of soft-lib/ci.
@@ -247,7 +239,7 @@ images:
       base: [locale, debpkg]
       ci: [locale, debpkg, ci-runtime]
       # Devcontainer variant: `ci` plus python and uv (the linters and test
-      # tools of a package written in Python), `dev` and new_git. No `build`:
+      # tools of a package written in Python) and `dev`. No `build`:
       # debpkg already brings build-essential, and a package builds with
       # dpkg-buildpackage, not cmake. `ci` stays an exact prefix.
-      dev: [locale, debpkg, ci-runtime, python, uv, dev, new_git]
+      dev: [locale, debpkg, ci-runtime, python, uv, dev]
