@@ -13,11 +13,12 @@
 #
 # devcontainer.json wiring:
 #   mounts: "source=claude-code-config,target=/home/dev/.claude-persist,type=volume"
+#   ($HOME below: the script runs as that user)
 #   postCreateCommand calls this via post-create.sh
 
 set -e
 
-PERSIST_DIR=/home/dev/.claude-persist
+PERSIST_DIR="$HOME/.claude-persist"
 
 # Docker creates a named volume empty and owned by root when the image carries
 # no content at the mount point -- which is the case here. The dev user then
@@ -60,7 +61,7 @@ persist() {
     fi
 }
 
-persist /home/dev/.claude.json claude.json json
-persist /home/dev/.claude dotclaude dir
+persist "$HOME/.claude.json" claude.json json
+persist "$HOME/.claude" dotclaude dir
 
 echo "[devcontainer] Claude Code config/credentials persisted via $PERSIST_DIR."

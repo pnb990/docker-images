@@ -5,7 +5,7 @@
 #
 # Sourced by the lifecycle scripts: LOG_TAG names the script in the log, and
 # the first argument, or else the cwd, is the workspace, which becomes the
-# cwd. devcontainer.json passes ${containerWorkspaceFolder}.
+# cwd and WORKSPACE_DIR. devcontainer.json passes ${containerWorkspaceFolder}.
 
 log() {
     echo "[${LOG_TAG}] $*"
@@ -25,4 +25,5 @@ step() {
 }
 
 cd "${1:-.}" || exit
-log "workspace: $PWD"
+WORKSPACE_DIR="$PWD"
+log "workspace: $WORKSPACE_DIR"

@@ -37,9 +37,9 @@ step "$SCRIPT_DIR/persist-claude-config.sh"
 # submodules, and fails on a submodule that is not checked out.
 step git submodule update --init
 
-if [ -f .devcontainer/project-install.sh ]; then
+if [ -f "$WORKSPACE_DIR/.devcontainer/project-install.sh" ]; then
     # shellcheck source=/dev/null
-    . .devcontainer/project-install.sh
+    . "$WORKSPACE_DIR/.devcontainer/project-install.sh"
 fi
 
 log "done."

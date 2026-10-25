@@ -18,14 +18,17 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_TAG=check-git-worktree
+# shellcheck source-path=SCRIPTDIR
+. "$SCRIPT_DIR/common.sh"
+
 status=0
 
 error() {
-    echo "[check-git-worktree] ERROR: $*" >&2
+    log "ERROR: $*" >&2
     status=1
 }
-
-cd "${1:-.}"
 
 # ~/.gitconfig is the host's, bind-mounted: this also covers worktrees
 # created on the host later.
@@ -40,7 +43,7 @@ fi
 if [ -f .git ]; then
     target="$(sed -e 's/^gitdir: //' .git)"
     if [[ "${target}" == /* ]]; then
-        error "absolute worktree link in $PWD/.git (${target})," \
+        error "absolute worktree link in $WORKSPACE_DIR/.git (${target})," \
             "run on the host from the main clone:" \
             "git worktree repair --relative-paths"
         exit "$status"

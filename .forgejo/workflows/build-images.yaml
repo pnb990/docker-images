@@ -197,7 +197,9 @@ jobs:
             # immutable `-<commit>` tag stays the same across pushes that do
             # not change the image. The Dockerfile alone is not enough: a
             # change to a copied script alone would push a different image
-            # under the same immutable tag.
+            # under the same immutable tag. An array, so that an image with
+            # no COPY passes no path at all: an empty string is an invalid
+            # pathspec and fails `git log`.
             mapfile -t sources < <(awk '$1 == "COPY" {
                 for (i = 2; i < NF; i++) if ($i !~ /^--/) print $i
               }' "$file")

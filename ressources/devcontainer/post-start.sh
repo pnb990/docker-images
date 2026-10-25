@@ -14,9 +14,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_TAG=post-start
 # shellcheck source-path=SCRIPTDIR
-. "$(dirname "$0")/common.sh"
+. "$SCRIPT_DIR/common.sh"
 
 rules=lib_ext/coding-rules
 if git ls-files --stage "$rules" | grep -q '^160000'; then
