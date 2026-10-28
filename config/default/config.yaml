@@ -244,14 +244,17 @@ images:
           dev,
         ]
   # Debian packages (yt-add-music-beet, then pi-test-bench), for the
-  # deb-build workflow of soft-lib/ci.
+  # deb-build workflow of soft-lib/ci and the coding-rules checks.
   debian-pkg:
     from: "debian:trixie-slim"
     variants:
       base: [locale, systemd, debpkg]
-      ci: [locale, systemd, debpkg, ci-runtime]
-      # Devcontainer variant: `ci` plus python and uv (the linters and test
-      # tools of a package written in Python) and `dev`. No `build`:
-      # debpkg already brings build-essential, and a package builds with
-      # dpkg-buildpackage, not cmake. `ci` stays an exact prefix.
+      # python and uv after ci-runtime: the standard.yaml checks of
+      # soft-lib/coding-rules run with uv (and the linters and test tools of
+      # a package written in Python), and in this order `ci` is an exact
+      # prefix of `dev`, whose layers it reuses.
+      ci: [locale, systemd, debpkg, ci-runtime, python, uv]
+      # Devcontainer variant: `ci` plus `dev`. No `build`: debpkg already
+      # brings build-essential, and a package builds with dpkg-buildpackage,
+      # not cmake.
       dev: [locale, systemd, debpkg, ci-runtime, python, uv, dev]

@@ -7,7 +7,7 @@
 #
 # image    : debian-pkg
 # variant  : ci
-# features : locale -> systemd -> debpkg -> ci-runtime
+# features : locale -> systemd -> debpkg -> ci-runtime -> python -> uv
 
 FROM debian:trixie-slim
 
@@ -90,6 +90,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         file \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# feature: python
+# -------------------------------------------------------------------
+# The system interpreter, for scripts that expect /usr/bin/python3. Project
+# environments are uv's job, hence no pip and no pipenv here.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# feature: uv
+# -------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# wget, not curl: curl is only present in the dev variant. Piping the
+# installer into sh would also hide a download failure, so download it, run
+# it, then check that uv really is there.
+RUN wget -qO /tmp/uv-install.sh https://astral.sh/uv/install.sh \
+    && env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+        sh /tmp/uv-install.sh \
+    && rm /tmp/uv-install.sh \
+    && uv --version
 
 # -------------------------------------------------------------------
 # provenance

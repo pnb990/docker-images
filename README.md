@@ -74,7 +74,7 @@ Which variant to consume:
 | Variant | For |
 |---|---|
 | `base` | build only, no CI plumbing |
-| `ci` | jobs running under the Forgejo runner (node, git, ssh), plus clang 21 (clang-format, clang-tidy) in the C images |
+| `ci` | jobs running under the Forgejo runner (node, git, ssh), plus clang 21 (clang-format, clang-tidy) in the C images; every image but `node` also has uv, which the `standard.yaml` checks of soft-lib/coding-rules need |
 | `dev` | devcontainers: probes, debuggers, non-root `dev` user, git >= 2.48, the lifecycle scripts |
 | `doc` | the CI job that generates the doxygen documentation, and it only |
 | `dev-x11` | `dev` plus an X11 client stack and tkinter, for the GUI tools |
