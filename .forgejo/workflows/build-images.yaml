@@ -274,6 +274,7 @@ jobs:
               "${tag_args[@]}" \
               --build-arg "IMAGE_COMMIT=$file_commit" \
               --build-arg "IMAGE_DATE=$file_date_iso" \
+              --build-arg "GIT_DEB_POOL=${GITHUB_SERVER_URL}/api/packages/soft-lib/debian/pool/trixie/main" \
               --attest "type=provenance,mode=max,builder-id=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
               --cache-from "type=registry,ref=$repo:buildcache-$variant" \
               --cache-to "type=registry,mode=max,ref=$repo:buildcache-$variant" \

@@ -66,6 +66,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # left in the image would break every later `apt-get update`. Without apt's
 # signature check, the sha256 pins stand in for it; a new git is an image
 # bump. `apt-get install ./*.deb` pulls the dependencies from Debian.
+#
+# GIT_DEB_POOL is overridden by build-images with the runner's own server URL
+# (plain http on the LAN): the public URL asks the builder for that client
+# certificate too.
+ARG GIT_DEB_POOL=https://gitbtv.ddns.net/api/packages/soft-lib/debian/pool/trixie/main
 ARG GIT_DEB_VERSION=1:2.53.0-1~bpo13+1
 ARG GIT_DEB_SHA256=dc0a75e630c5a619bcb1ce983e357ba34a43b63e91a1e9774f7e75807e716822
 ARG GIT_MAN_DEB_SHA256=5f615725a15a1bba0ca476eb0fedbd8649dfa986e7c57b4119bee83225924429
@@ -75,10 +80,9 @@ RUN [ "$(dpkg --print-architecture)" = amd64 ] \
     && apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
-    && POOL=https://gitbtv.ddns.net/api/packages/soft-lib/debian/pool/trixie/main \
     && cd /tmp \
-    && curl -fsSL -o git.deb "${POOL}/git_${GIT_DEB_VERSION}_amd64.deb" \
-    && curl -fsSL -o git-man.deb "${POOL}/git-man_${GIT_DEB_VERSION}_all.deb" \
+    && curl -fsSL -o git.deb "${GIT_DEB_POOL}/git_${GIT_DEB_VERSION}_amd64.deb" \
+    && curl -fsSL -o git-man.deb "${GIT_DEB_POOL}/git-man_${GIT_DEB_VERSION}_all.deb" \
     && printf '%s  %s\n' "${GIT_DEB_SHA256}" git.deb "${GIT_MAN_DEB_SHA256}" git-man.deb \
         | sha256sum -c - \
     && apt-get install -y --no-install-recommends ./git.deb ./git-man.deb \
