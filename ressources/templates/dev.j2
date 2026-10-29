@@ -10,13 +10,13 @@
 # switches back to root itself, the way `jlink` does. A CI variant built on
 # top of this one would run as a non-root user and its apt-get would fail.
 ARG USERNAME=dev
-ARG GIT_VERSION=2.53.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         sudo \
         udev \
         ssh \
         curl \
+        ca-certificates \
         bear \
         bash-completion \
         openocd \
@@ -31,37 +31,6 @@ RUN useradd -m ${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME} \
     && usermod -a -G dialout,plugdev ${USERNAME} \
     && mkdir -p /home/${USERNAME}/project
-
-# A newer git (>= 2.48) built from source, for relative-path git worktree
-# linking: worktrees keep working when the whole tree is relocated (e.g. the
-# repo is bind-mounted at a different path in a container). Debian trixie ships
-# git 2.47, which lacks it.
-#
-# Built into /usr/local, which precedes /usr/bin on PATH, so it shadows the apt
-# package without removing it (still needed for git-gui/gitk).
-#
-# Build dependencies: compiler/make, plus curl (remote transport), openssl
-# (https/crypto) and zlib (packfile compression). NO_GETTEXT, NO_TCLTK,
-# NO_EXPAT and NO_RUST below drop the matching dependencies.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libcurl4-openssl-dev \
-        libssl-dev \
-        zlib1g-dev \
-        wget \
-        ca-certificates \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz \
-        -O /tmp/git-${GIT_VERSION}.tar.gz \
-    && tar -xzf /tmp/git-${GIT_VERSION}.tar.gz -C /tmp \
-    && cd /tmp/git-${GIT_VERSION} \
-    && make -j"$(nproc)" \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local all \
-    && make \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local install \
-    && rm -f /tmp/git-${GIT_VERSION}.tar.gz \
-    && rm -rf /tmp/git-${GIT_VERSION}
 
 # The lifecycle scripts every devcontainer.json calls, versioned by the image
 # tag instead of being copied into each repository. Last in the feature: they
