@@ -12,6 +12,9 @@ features:
   # systemd installed but not running, in every image right after locale:
   # the tools a package's units, sysusers and tmpfiles need.
   systemd: "systemd.j2"
+  # git 2.53 from soft-lib/git-backport, in every image right after systemd:
+  # trixie's 2.47 cannot read relative-path worktrees.
+  git: "git.j2"
   build: "build.j2"
   python: "python.j2"
   uv: "uv.j2"
@@ -58,8 +61,8 @@ images:
   fw-arm-none-eabi-13.2.rel1:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, build, python, uv, arm-13.2.rel1]
-      ci: [locale, systemd, build, python, uv, arm-13.2.rel1, ci-runtime, clang]
+      base: [locale, systemd, git, build, python, uv, arm-13.2.rel1]
+      ci: [locale, systemd, git, build, python, uv, arm-13.2.rel1, ci-runtime, clang]
       # clang closes `ci`, so every variant below starts with it. jlink is
       # stacked right after `dev` in every dev-derived variant, so `dev, jlink`
       # stays their common prefix and the layer sharing described above still
@@ -69,6 +72,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -87,6 +91,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -104,6 +109,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -125,6 +131,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -138,12 +145,13 @@ images:
   fw-arm-none-eabi-15.3.rel1:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, build, python, uv, arm-15.3.rel1]
-      ci: [locale, systemd, build, python, uv, arm-15.3.rel1, ci-runtime, clang]
+      base: [locale, systemd, git, build, python, uv, arm-15.3.rel1]
+      ci: [locale, systemd, git, build, python, uv, arm-15.3.rel1, ci-runtime, clang]
       dev:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -157,6 +165,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -171,6 +180,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -186,6 +196,7 @@ images:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -197,8 +208,8 @@ images:
   python3:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, python, uv]
-      ci: [locale, systemd, python, uv, ci-runtime]
+      base: [locale, systemd, git, python, uv]
+      ci: [locale, systemd, git, python, uv, ci-runtime]
       # Devcontainer variant, for python projects that drive hardware (the
       # pi-test-bench bench). It extends `ci` -- which already carries node,
       # npm and git for the JavaScript actions -- with `build` (the C toolchain
@@ -208,7 +219,7 @@ images:
       # layer up to and including ci-runtime. Project-specific packages
       # (can-utils, libusb) and the bench sudoers rule stay in the project's
       # postCreate, not here: this image is meant to stay generic.
-      dev: [locale, systemd, python, uv, ci-runtime, build, dev]
+      dev: [locale, systemd, git, python, uv, ci-runtime, build, dev]
   # JavaScript/TypeScript projects and VS Code extensions (pi-test-bench's
   # dashboard and vscode-ext). `node` comes before `ci-runtime` so that `base`
   # stays an exact prefix of `ci`; ci-runtime's apt node is still installed,
@@ -217,24 +228,25 @@ images:
   node:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, node]
-      ci: [locale, systemd, node, ci-runtime]
+      base: [locale, systemd, git, node]
+      ci: [locale, systemd, git, node, ci-runtime]
       # Devcontainer variant, same recipe as python3's: `ci` plus `build` (for
       # native addons) and `dev` (interactive shell, sudo, the `dev` user).
       # `ci` stays an exact prefix.
-      dev: [locale, systemd, node, ci-runtime, build, dev]
+      dev: [locale, systemd, git, node, ci-runtime, build, dev]
   # ESP8266 firmware (wifi-nic's coprocessor). Same layout as the arm image:
   # `base` is a prefix of `ci`, a prefix of `dev`, so the toolchain and SDK
   # layers are shared by the three variants.
   fw-xtensa-lx106-esp-2020r3:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, build, python, uv, xtensa-lx106]
-      ci: [locale, systemd, build, python, uv, xtensa-lx106, ci-runtime, clang]
+      base: [locale, systemd, git, build, python, uv, xtensa-lx106]
+      ci: [locale, systemd, git, build, python, uv, xtensa-lx106, ci-runtime, clang]
       dev:
         [
           locale,
           systemd,
+          git,
           build,
           python,
           uv,
@@ -248,13 +260,13 @@ images:
   debian-pkg:
     from: "debian:trixie-slim"
     variants:
-      base: [locale, systemd, debpkg]
+      base: [locale, systemd, git, debpkg]
       # python and uv after ci-runtime: the standard.yaml checks of
       # soft-lib/coding-rules run with uv (and the linters and test tools of
       # a package written in Python), and in this order `ci` is an exact
       # prefix of `dev`, whose layers it reuses.
-      ci: [locale, systemd, debpkg, ci-runtime, python, uv]
+      ci: [locale, systemd, git, debpkg, ci-runtime, python, uv]
       # Devcontainer variant: `ci` plus `dev`. No `build`: debpkg already
       # brings build-essential, and a package builds with dpkg-buildpackage,
       # not cmake.
-      dev: [locale, systemd, debpkg, ci-runtime, python, uv, dev]
+      dev: [locale, systemd, git, debpkg, ci-runtime, python, uv, dev]

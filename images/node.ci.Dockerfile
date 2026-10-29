@@ -7,7 +7,7 @@
 #
 # image    : node
 # variant  : ci
-# features : locale -> systemd -> node -> ci-runtime
+# features : locale -> systemd -> git -> node -> ci-runtime
 
 FROM debian:trixie-slim
 
@@ -52,6 +52,40 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && : > /etc/machine-id
 
 # -------------------------------------------------------------------
+# feature: git
+# -------------------------------------------------------------------
+# A newer git (>= 2.48), for relative-path git worktree linking: worktrees
+# keep working when the whole tree is relocated (e.g. the repo is bind-mounted
+# at a different path in a container, or checked out by the CI). Debian
+# trixie ships git 2.47, which lacks it, so it comes from the
+# soft-lib/git-backport package. Right after `systemd` in every variant of
+# every image; a feature that lists `git` later finds it already installed.
+#
+# The .deb files are fetched directly, not through an apt source: outside the
+# server's network the registry requires a client certificate, so a source
+# left in the image would break every later `apt-get update`. Without apt's
+# signature check, the sha256 pins stand in for it; a new git is an image
+# bump. `apt-get install ./*.deb` pulls the dependencies from Debian.
+ARG GIT_DEB_VERSION=1:2.53.0-1~bpo13+1
+ARG GIT_DEB_SHA256=dc0a75e630c5a619bcb1ce983e357ba34a43b63e91a1e9774f7e75807e716822
+ARG GIT_MAN_DEB_SHA256=5f615725a15a1bba0ca476eb0fedbd8649dfa986e7c57b4119bee83225924429
+
+RUN [ "$(dpkg --print-architecture)" = amd64 ] \
+        || { echo "the git backport is only published for amd64" >&2; exit 1; } \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && POOL=https://gitbtv.ddns.net/api/packages/soft-lib/debian/pool/trixie/main \
+    && cd /tmp \
+    && curl -fsSL -o git.deb "${POOL}/git_${GIT_DEB_VERSION}_amd64.deb" \
+    && curl -fsSL -o git-man.deb "${POOL}/git-man_${GIT_DEB_VERSION}_all.deb" \
+    && printf '%s  %s\n' "${GIT_DEB_SHA256}" git.deb "${GIT_MAN_DEB_SHA256}" git-man.deb \
+        | sha256sum -c - \
+    && apt-get install -y --no-install-recommends ./git.deb ./git-man.deb \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/git.deb /tmp/git-man.deb \
+    && git --version | grep -q '^git version 2\.53\.'
+
+# -------------------------------------------------------------------
 # feature: node
 # -------------------------------------------------------------------
 # A current Node LTS, plus the TypeScript and VS Code extension tooling
@@ -61,8 +95,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # The official tarball, not NodeSource: no third-party apt repository to
 # trust, and the checksum below is checked against nodejs.org's own list.
 # Installed into /usr/local, which precedes /usr/bin on PATH, so it shadows
-# the apt node that `ci-runtime` may bring without conflicting with it. Same
-# approach as the git built by `dev`.
+# the apt node that `ci-runtime` may bring without conflicting with it.
 #
 # The global tools are for one-off use and quick checks; a project still pins
 # its own copies in package-lock.json and runs those through `npm ci`.

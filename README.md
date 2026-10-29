@@ -26,17 +26,23 @@ Model: features, images, variants
 ---------------------------------
 
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `systemd`,
-`build`, `python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`,
+`git`, `build`, `python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`,
 `ci-runtime`, `dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`,
 `debpkg`). It installs what it needs itself, so it can be reused by any image.
 
-Every variant of every image starts with `locale` then `systemd`. systemd is
-installed, not running: it is not PID 1, so the containers behave as before,
-but `systemctl`, `systemd-analyze`, `systemd-sysusers` and `systemd-tmpfiles`
-are there, for a package's maintainer scripts and for tests that check units
-(`systemd-analyze verify`, `systemctl is-enabled`). It costs about 20 MB, put
-everywhere rather than discovered missing project by project. Running it as
-PID 1 is #31.
+Every variant of every image starts with `locale`, `systemd` then `git`.
+systemd is installed, not running: it is not PID 1, so the containers behave
+as before, but `systemctl`, `systemd-analyze`, `systemd-sysusers` and
+`systemd-tmpfiles` are there, for a package's maintainer scripts and for tests
+that check units (`systemd-analyze verify`, `systemctl is-enabled`). It costs
+about 20 MB, put everywhere rather than discovered missing project by project.
+Running it as PID 1 is #31.
+
+git is 2.53 from soft-lib/git-backport instead of trixie's 2.47, which cannot
+read relative-path worktrees. The `.deb` files are downloaded and checked
+against sha256 pins, not installed through an apt source: outside the
+server's network the registry asks for a client certificate, and a source
+left in the image would break `apt-get update`. A new git is an image bump.
 
 The two ARM toolchains are two features and two images,
 `fw-arm-none-eabi-13.2.rel1` and `fw-arm-none-eabi-15.3.rel1`, with the same

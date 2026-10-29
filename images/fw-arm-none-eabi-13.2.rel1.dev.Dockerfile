@@ -7,7 +7,7 @@
 #
 # image    : fw-arm-none-eabi-13.2.rel1
 # variant  : dev
-# features : locale -> systemd -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> clang -> dev -> jlink
+# features : locale -> systemd -> git -> build -> python -> uv -> arm-13.2.rel1 -> ci-runtime -> clang -> dev -> jlink
 
 FROM debian:trixie-slim
 
@@ -50,6 +50,40 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         systemd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && : > /etc/machine-id
+
+# -------------------------------------------------------------------
+# feature: git
+# -------------------------------------------------------------------
+# A newer git (>= 2.48), for relative-path git worktree linking: worktrees
+# keep working when the whole tree is relocated (e.g. the repo is bind-mounted
+# at a different path in a container, or checked out by the CI). Debian
+# trixie ships git 2.47, which lacks it, so it comes from the
+# soft-lib/git-backport package. Right after `systemd` in every variant of
+# every image; a feature that lists `git` later finds it already installed.
+#
+# The .deb files are fetched directly, not through an apt source: outside the
+# server's network the registry requires a client certificate, so a source
+# left in the image would break every later `apt-get update`. Without apt's
+# signature check, the sha256 pins stand in for it; a new git is an image
+# bump. `apt-get install ./*.deb` pulls the dependencies from Debian.
+ARG GIT_DEB_VERSION=1:2.53.0-1~bpo13+1
+ARG GIT_DEB_SHA256=dc0a75e630c5a619bcb1ce983e357ba34a43b63e91a1e9774f7e75807e716822
+ARG GIT_MAN_DEB_SHA256=5f615725a15a1bba0ca476eb0fedbd8649dfa986e7c57b4119bee83225924429
+
+RUN [ "$(dpkg --print-architecture)" = amd64 ] \
+        || { echo "the git backport is only published for amd64" >&2; exit 1; } \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && POOL=https://gitbtv.ddns.net/api/packages/soft-lib/debian/pool/trixie/main \
+    && cd /tmp \
+    && curl -fsSL -o git.deb "${POOL}/git_${GIT_DEB_VERSION}_amd64.deb" \
+    && curl -fsSL -o git-man.deb "${POOL}/git-man_${GIT_DEB_VERSION}_all.deb" \
+    && printf '%s  %s\n' "${GIT_DEB_SHA256}" git.deb "${GIT_MAN_DEB_SHA256}" git-man.deb \
+        | sha256sum -c - \
+    && apt-get install -y --no-install-recommends ./git.deb ./git-man.deb \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/git.deb /tmp/git-man.deb \
+    && git --version | grep -q '^git version 2\.53\.'
 
 # -------------------------------------------------------------------
 # feature: build
@@ -182,13 +216,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # switches back to root itself, the way `jlink` does. A CI variant built on
 # top of this one would run as a non-root user and its apt-get would fail.
 ARG USERNAME=dev
-ARG GIT_VERSION=2.53.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         sudo \
         udev \
         ssh \
         curl \
+        ca-certificates \
         bear \
         bash-completion \
         openocd \
@@ -203,37 +237,6 @@ RUN useradd -m ${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME} \
     && usermod -a -G dialout,plugdev ${USERNAME} \
     && mkdir -p /home/${USERNAME}/project
-
-# A newer git (>= 2.48) built from source, for relative-path git worktree
-# linking: worktrees keep working when the whole tree is relocated (e.g. the
-# repo is bind-mounted at a different path in a container). Debian trixie ships
-# git 2.47, which lacks it.
-#
-# Built into /usr/local, which precedes /usr/bin on PATH, so it shadows the apt
-# package without removing it (still needed for git-gui/gitk).
-#
-# Build dependencies: compiler/make, plus curl (remote transport), openssl
-# (https/crypto) and zlib (packfile compression). NO_GETTEXT, NO_TCLTK,
-# NO_EXPAT and NO_RUST below drop the matching dependencies.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libcurl4-openssl-dev \
-        libssl-dev \
-        zlib1g-dev \
-        wget \
-        ca-certificates \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz \
-        -O /tmp/git-${GIT_VERSION}.tar.gz \
-    && tar -xzf /tmp/git-${GIT_VERSION}.tar.gz -C /tmp \
-    && cd /tmp/git-${GIT_VERSION} \
-    && make -j"$(nproc)" \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local all \
-    && make \
-        NO_GETTEXT=1 NO_TCLTK=1 NO_EXPAT=1 NO_RUST=1 prefix=/usr/local install \
-    && rm -f /tmp/git-${GIT_VERSION}.tar.gz \
-    && rm -rf /tmp/git-${GIT_VERSION}
 
 # The lifecycle scripts every devcontainer.json calls, versioned by the image
 # tag instead of being copied into each repository. Last in the feature: they
