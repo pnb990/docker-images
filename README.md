@@ -28,7 +28,8 @@ Model: features, images, variants
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `systemd`,
 `git`, `build`, `python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`,
 `ci-runtime`, `dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`,
-`debpkg`). It installs what it needs itself, so it can be reused by any image.
+`debpkg`, `rust`, `probe-rs`). It installs what it needs itself, so it can be
+reused by any image.
 
 Every variant of every image starts with `locale`, `systemd` then `git`.
 systemd is installed, not running: it is not PID 1, so the containers behave
@@ -158,9 +159,23 @@ The `dev` variant adds
 python, uv and `dev` to `ci`, for the devcontainer of a package written in
 Python.
 
+The `fw-rust` image builds Rust firmware for the Cortex-M4F
+(pnbchrono-fw-rust). Its `rust` feature installs rustup from its versioned
+archive (checksum verified) into `/usr/local/rustup` and `/usr/local/cargo`,
+with a pinned stable toolchain, the `thumbv7em-none-eabihf` target, `rustfmt`,
+`clippy` and `llvm-tools`, plus `flip-link` (the linker of embassy projects,
+which turns a stack overflow into a fault) and `cargo-binutils`. Both
+directories are world-writable, so a `rust-toolchain.toml` asking for another
+toolchain works as any user; a devcontainer that wants its registry cache to
+survive rebuilds sets its own `CARGO_HOME`, the tools staying on `PATH`. The
+`dev` variant adds the `probe-rs` feature after `dev`: `probe-rs` and
+`defmt-print`, built from crates.io with `--locked`, which makes its first
+build long. The host still needs probe-rs's udev rules for the probe to be
+reachable from the container.
+
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
-be stacked on top of it, which is what `jlink` and `x11` do, and why they come
-last.
+be stacked on top of it, which is what `jlink`, `x11` and `probe-rs` do, and
+why they come last.
 
 **What `dev` gives a devcontainer.**
 

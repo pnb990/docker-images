@@ -1,0 +1,40 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: probe-rs
+# -------------------------------------------------------------------
+# Flash and log from the devcontainer: probe-rs (`cargo run` flashes, opens
+# RTT and decodes defmt; ST-Link, J-Link, CMSIS-DAP) and defmt-print, which
+# decodes a defmt stream read elsewhere (OpenOCD's RTT server, a bench).
+# Needs the `rust` feature.
+#
+# Devcontainer only, CI flashes nothing. Stacked after `dev`, which hands
+# over a non-root image, so it switches back to root itself and returns to
+# the user `dev` created, the same contract as `jlink`.
+#
+# Built from crates.io with --locked rather than downloaded: no third-party
+# binary to trust, at the price of a long first build (the layer is cached
+# afterwards). libudev is what probe-rs lists USB probes with; the host still
+# needs probe-rs's udev rules for the probe to be accessible.
+ARG USERNAME=dev
+ARG PROBE_RS_VERSION=0.32.0
+ARG DEFMT_PRINT_VERSION=1.2.0
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        pkg-config \
+        libudev-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN cargo install --locked \
+        "probe-rs-tools@${PROBE_RS_VERSION}" \
+        "defmt-print@${DEFMT_PRINT_VERSION}" \
+    && rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git" \
+    && chmod -R a+w "${CARGO_HOME}" \
+    && probe-rs --version \
+    && defmt-print --version
+
+USER ${USERNAME}

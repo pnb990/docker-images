@@ -104,6 +104,8 @@ jobs:
             variants: "base ci dev"
           - name: "debian-pkg"
             variants: "base ci dev"
+          - name: "fw-rust"
+            variants: "base ci dev"
 
     steps:
       - name: Debug matrix

@@ -118,5 +118,20 @@
         "name": "debian-pkg",
         "variant": "dev",
         "file": "debian-pkg.dev.Dockerfile"
+    },
+    {
+        "name": "fw-rust",
+        "variant": "base",
+        "file": "fw-rust.base.Dockerfile"
+    },
+    {
+        "name": "fw-rust",
+        "variant": "ci",
+        "file": "fw-rust.ci.Dockerfile"
+    },
+    {
+        "name": "fw-rust",
+        "variant": "dev",
+        "file": "fw-rust.dev.Dockerfile"
     }
 ]
