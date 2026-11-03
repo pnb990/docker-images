@@ -50,6 +50,13 @@ features:
   # lintian, autopkgtest. A package's own Build-Depends are installed by the
   # job.
   debpkg: "debpkg.j2"
+  # Rust for Cortex-M4F firmware: rustup with a pinned toolchain, the
+  # thumbv7em-none-eabihf target, rustfmt, clippy, llvm-tools, flip-link and
+  # cargo-binutils.
+  rust: "rust.j2"
+  # probe-rs and defmt-print, for the devcontainer only. Stacked after `dev`,
+  # it switches back to root itself, like `jlink`.
+  probe-rs: "probe-rs.j2"
 
 # An image is a base image plus, per variant, an ordered list of features.
 #
@@ -270,3 +277,25 @@ images:
       # brings build-essential, and a package builds with dpkg-buildpackage,
       # not cmake.
       dev: [locale, systemd, git, debpkg, ci-runtime, python, uv, dev]
+  # Rust firmware (pnbchrono-fw-rust). Same layout as the arm images: `base`
+  # is a prefix of `ci`, a prefix of `dev`. python and uv stay for the
+  # standard.yaml checks of soft-lib/coding-rules; no clang, nothing here is
+  # C. probe-rs closes `dev`: the CI flashes nothing.
+  fw-rust:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, systemd, git, build, python, uv, rust]
+      ci: [locale, systemd, git, build, python, uv, rust, ci-runtime]
+      dev:
+        [
+          locale,
+          systemd,
+          git,
+          build,
+          python,
+          uv,
+          rust,
+          ci-runtime,
+          dev,
+          probe-rs,
+        ]
