@@ -57,6 +57,9 @@ features:
   # probe-rs and defmt-print, for the devcontainer only. Stacked after `dev`,
   # it switches back to root itself, like `jlink`.
   probe-rs: "probe-rs.j2"
+  # Debian packages of Rust programs for amd64 and arm64: the two Linux
+  # targets, the arm64 cross gcc and cargo-deb. Needs `rust`.
+  rust-deb: "rust-deb.j2"
 
 # An image is a base image plus, per variant, an ordered list of features.
 #
@@ -298,4 +301,27 @@ images:
           ci-runtime,
           dev,
           probe-rs,
+        ]
+  # Debian packages of Rust programs (defmt-print-deb), for the cargo-deb
+  # workflow of soft-lib/ci. Starts like debian-pkg, whose first layers it
+  # shares, then the toolchain of fw-rust and the arm64 cross chain.
+  # python and uv after ci-runtime for the standard.yaml checks, as in
+  # debian-pkg, so that `ci` stays a prefix of `dev`.
+  deb-rust:
+    from: "debian:trixie-slim"
+    variants:
+      base: [locale, systemd, git, debpkg, rust, rust-deb]
+      ci: [locale, systemd, git, debpkg, rust, rust-deb, ci-runtime, python, uv]
+      dev:
+        [
+          locale,
+          systemd,
+          git,
+          debpkg,
+          rust,
+          rust-deb,
+          ci-runtime,
+          python,
+          uv,
+          dev,
         ]

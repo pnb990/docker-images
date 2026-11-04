@@ -106,6 +106,8 @@ jobs:
             variants: "base ci dev"
           - name: "fw-rust"
             variants: "base ci dev"
+          - name: "deb-rust"
+            variants: "base ci dev"
 
     steps:
       - name: Debug matrix

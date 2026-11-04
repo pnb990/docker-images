@@ -28,8 +28,8 @@ Model: features, images, variants
 A **feature** is a self-contained snippet of Dockerfile (`locale`, `systemd`,
 `git`, `build`, `python`, `uv`, `arm-13.2.rel1`, `arm-15.3.rel1`, `doxygen`,
 `ci-runtime`, `dev`, `jlink`, `x11`, `pyqt6`, `node`, `xtensa-lx106`,
-`debpkg`, `rust`, `probe-rs`). It installs what it needs itself, so it can be
-reused by any image.
+`debpkg`, `rust`, `probe-rs`, `rust-deb`). It installs what it needs itself,
+so it can be reused by any image.
 
 Every variant of every image starts with `locale`, `systemd` then `git`.
 systemd is installed, not running: it is not PID 1, so the containers behave
@@ -172,6 +172,14 @@ survive rebuilds sets its own `CARGO_HOME`, the tools staying on `PATH`. The
 `defmt-print`, built from crates.io with `--locked`, which makes its first
 build long. The host still needs probe-rs's udev rules for the probe to be
 reachable from the container.
+
+The `deb-rust` image builds Debian packages of Rust programs, for amd64 and
+arm64, for the `cargo-deb` workflow of soft-lib/ci (defmt-print-deb). It is
+`debian-pkg`'s `debpkg`, then `fw-rust`'s `rust`, then the `rust-deb`
+feature: the `x86_64-unknown-linux-gnu` and `aarch64-unknown-linux-gnu`
+targets, the arm64 cross gcc (set as cargo's linker for that target) and
+`cargo-deb`. arm64 is cross-compiled from the amd64 runner; the image build
+links a hello world for it, so a broken cross chain is never pushed.
 
 `dev` ends on `USER dev`. Only a feature that switches back to root itself can
 be stacked on top of it, which is what `jlink`, `x11` and `probe-rs` do, and

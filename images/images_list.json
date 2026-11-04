@@ -133,5 +133,20 @@
         "name": "fw-rust",
         "variant": "dev",
         "file": "fw-rust.dev.Dockerfile"
+    },
+    {
+        "name": "deb-rust",
+        "variant": "base",
+        "file": "deb-rust.base.Dockerfile"
+    },
+    {
+        "name": "deb-rust",
+        "variant": "ci",
+        "file": "deb-rust.ci.Dockerfile"
+    },
+    {
+        "name": "deb-rust",
+        "variant": "dev",
+        "file": "deb-rust.dev.Dockerfile"
     }
 ]
