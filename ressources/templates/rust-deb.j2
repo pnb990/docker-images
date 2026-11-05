@@ -1,0 +1,47 @@
+{#
+    SPDX-FileCopyrightText: 2026 Pierre-Noel Bouteville <pnb990@gmail.com>
+
+    SPDX-License-Identifier: BSD-3-Clause
+#}
+# -------------------------------------------------------------------
+# feature: rust-deb
+# -------------------------------------------------------------------
+# Debian packages of Rust programs, for amd64 and arm64 (a Raspberry Pi)
+# from an amd64 runner: the two Linux targets, the arm64 cross gcc that
+# links them (and its binutils, whose strip cargo-deb calls), and cargo-deb,
+# which turns `cargo build` into a .deb. Needs the `rust` feature.
+#
+# Cross-compiled rather than built on an arm64 runner: there is none, and a
+# Rust program without C dependencies only needs a linker for the target. One
+# with C dependencies would also need the arm64 -dev packages
+# (`dpkg --add-architecture arm64`), left out until a package asks for them.
+#
+# The linker is set through cargo's environment rather than a config.toml,
+# so that a project's own .cargo/config.toml still applies on top of it.
+ARG CARGO_DEB_VERSION=3.8.0
+
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc-aarch64-linux-gnu \
+        libc6-dev-arm64-cross \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# A hello world linked for arm64 checks the whole chain, so that a broken
+# cross linker is never pushed.
+RUN rustup target add \
+        x86_64-unknown-linux-gnu \
+        aarch64-unknown-linux-gnu \
+    && cargo install --locked "cargo-deb@${CARGO_DEB_VERSION}" \
+    && rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git" \
+    && chmod -R a+w "${RUSTUP_HOME}" "${CARGO_HOME}" \
+    && cargo deb --version \
+    && cd /tmp \
+    && cargo new --quiet hello \
+    && cargo build --quiet --release \
+        --manifest-path hello/Cargo.toml \
+        --target aarch64-unknown-linux-gnu \
+    && aarch64-linux-gnu-readelf -h \
+        hello/target/aarch64-unknown-linux-gnu/release/hello \
+        | grep -q 'AArch64' \
+    && rm -rf hello "${CARGO_HOME}/registry"
