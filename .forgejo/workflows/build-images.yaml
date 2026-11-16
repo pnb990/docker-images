@@ -18,7 +18,7 @@ env:
   # consume. Written out rather than taken from a context: the `github` /
   # `forgejo` event payload only carries a default branch on some event types,
   # and a silently empty value here would make every branch `-latest`.
-  DEFAULT_BRANCH: master
+  DEFAULT_BRANCH: main
 
 jobs:
   # prepare:
